@@ -822,7 +822,7 @@ st.image(
     width=600,
 )
 
-    p1, p2 = st.columns(2)
+p1, p2 = st.columns(2)
 
     with p1:
 
