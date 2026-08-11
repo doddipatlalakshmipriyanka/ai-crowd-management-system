@@ -1264,16 +1264,16 @@ if uploaded_image is not None:
         st.subheader(
             "📷 Image Crowd Analysis"
         )
-        st.image(
-            upload_rgb = cv2.cvtColor(
-                upload_image,
-                cv2.COLOR_BGR2RGB,
-            )
-            st.image(
-                upload_rgb,
-                caption="Detected Crowd",
-                use_container_width=True,
-            )
+    st.image(
+        upload_rgb = cv2.cvtColor(
+            upload_image,
+            cv2.COLOR_BGR2RGB,
+        )
+    st.image(
+        upload_rgb,
+        caption="Detected Crowd",
+        use_container_width=True,
+    )
 u1, u2 = st.columns(2)
 
 with u1:
