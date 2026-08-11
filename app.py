@@ -1267,13 +1267,11 @@ with u1:
         "👥 People Detected",
         people_count,
     )
-
-        with u2:
-
-            st.metric(
-                "⚠️ Crowd Risk",
-                risk,
-            )
+    with u2:
+        st.metric(
+            "⚠️ Crowd Risk",
+            risk,
+        )
 
         if risk == "HIGH":
 
