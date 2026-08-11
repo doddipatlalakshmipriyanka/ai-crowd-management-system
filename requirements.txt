@@ -1,10 +1,12 @@
 streamlit
-streamlit-webrtc
-streamlit-folium
-streamlit-js-eval
 opencv-python-headless
 ultralytics
+streamlit-webrtc
 av
+aiortc
 folium
-pandas
+streamlit-folium
+streamlit-js-eval
 numpy
+pandas
+requests
