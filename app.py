@@ -828,29 +828,39 @@ with p1:
         st.session_state.captured_photo_people,
     )
 
-    with p2:
+with p2:
+    st.metric(
+        "⚠️ Crowd Risk",
+        st.session_state.captured_photo_risk,
+    )
 
-        st.metric(
-            "⚠️ Crowd Risk",
-            st.session_state.captured_photo_risk,
-        )
-
-    photo_bytes = cv2.imencode(
+    # Convert captured image to JPEG
+try:
+    success, encoded_image = cv2.imencode(
         ".jpg",
         st.session_state.captured_photo,
         [
             int(cv2.IMWRITE_JPEG_QUALITY),
-            95,
+            85,
         ],
-    )[1].tobytes()
-
-    st.download_button(
-        "📥 Download Captured Photo",
-        data=photo_bytes,
-        file_name="live_crowd_photo.jpg",
-        mime="image/jpeg",
-        key="download_live_photo",
     )
+
+    if success:
+        photo_bytes = encoded_image.tobytes()
+
+        st.download_button(
+            "📥 Download Captured Photo",
+            data=photo_bytes,
+            file_name="live_crowd_photo.jpg",
+            mime="image/jpeg",
+            key="download_live_photo",
+        )
+    else:
+        st.error("❌ Could not convert captured photo to JPEG.")
+
+except Exception as e:
+    st.error("❌ Error while preparing captured photo.")
+    st.code(str(e))
 
 
 # ============================================================
