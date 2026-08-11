@@ -1,12 +1,12 @@
 streamlit
-opencv-python-headless
 ultralytics
+opencv-python-headless==4.11.0.86
+numpy==1.26.4
 streamlit-webrtc
 av
 aiortc
 folium
 streamlit-folium
 streamlit-js-eval
-numpy
 pandas
 requests
