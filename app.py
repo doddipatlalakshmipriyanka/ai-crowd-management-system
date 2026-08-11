@@ -821,15 +821,12 @@ st.image(
     caption="Captured Crowd Image",
     width=600,
 )
-
 p1, p2 = st.columns(2)
-
-    with p1:
-
-        st.metric(
-            "👥 People Detected",
-            st.session_state.captured_photo_people,
-        )
+with p1:
+    st.metric(
+        "👥 People Detected",
+        st.session_state.captured_photo_people,
+    )
 
     with p2:
 
