@@ -1,0 +1,10 @@
+streamlit
+streamlit-webrtc
+streamlit-folium
+streamlit-js-eval
+opencv-python-headless
+ultralytics
+av
+folium
+pandas
+numpy
