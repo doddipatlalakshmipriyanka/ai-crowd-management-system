@@ -360,7 +360,7 @@ def reverse_geocode(latitude, longitude):
 
     try:
 
-       url = "https://nominatim.openstreetmap.org/reverse"
+        url = "https://nominatim.openstreetmap.org/reverse"
 
         params = {
             "lat": latitude,
@@ -420,8 +420,6 @@ def reverse_geocode(latitude, longitude):
         print("Reverse geocoding error:", e)
 
     return None
-
-
 # ============================================================
 # CAMERA FRAME CALLBACK
 # ============================================================
