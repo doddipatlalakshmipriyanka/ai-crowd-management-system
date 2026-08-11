@@ -360,7 +360,7 @@ def reverse_geocode(latitude, longitude):
 
     try:
 
-        url = "https://nominatim.openstreetmap.org/reverse"
+       url = "https://nominatim.openstreetmap.org/reverse"
 
         params = {
             "lat": latitude,
@@ -834,10 +834,14 @@ with p2:
         st.session_state.captured_photo_risk,
     )
 
-    # Convert captured image to JPEG
+# ============================================================
+# DOWNLOAD CAPTURED PHOTO
+# ============================================================
+
 if st.session_state.captured_photo is not None:
 
     try:
+
         success, encoded_image = cv2.imencode(
             ".jpg",
             st.session_state.captured_photo,
@@ -848,6 +852,7 @@ if st.session_state.captured_photo is not None:
         )
 
         if success:
+
             photo_bytes = encoded_image.tobytes()
 
             st.download_button(
@@ -857,11 +862,19 @@ if st.session_state.captured_photo is not None:
                 mime="image/jpeg",
                 key="download_live_photo",
             )
+
         else:
-            st.error("❌ Could not convert captured photo to JPEG.")
+
+            st.error(
+                "❌ Could not convert captured photo to JPEG."
+            )
 
     except Exception as e:
-        st.error("❌ Error while preparing captured photo.")
+
+        st.error(
+            "❌ Error while preparing captured photo."
+        )
+
         st.code(str(e))
     if success:
         photo_bytes = encoded_image.tobytes()
@@ -1194,6 +1207,10 @@ else:
 # IMAGE UPLOAD
 # ============================================================
 
+# ============================================================
+# IMAGE UPLOAD
+# ============================================================
+
 st.markdown("---")
 
 st.subheader("📁 Upload Crowd Image")
@@ -1228,6 +1245,10 @@ if uploaded_image is not None:
         )
 
     else:
+
+        # ----------------------------------------------------
+        # YOLO IMAGE DETECTION
+        # ----------------------------------------------------
 
         results = model(
             upload_image,
@@ -1275,35 +1296,48 @@ if uploaded_image is not None:
                     2,
                 )
 
-        risk = get_risk(
-            people_count
+        # ----------------------------------------------------
+        # RISK ANALYSIS
+        # ----------------------------------------------------
+
+        risk = get_risk(people_count)
+
+        # ----------------------------------------------------
+        # DISPLAY IMAGE
+        # ----------------------------------------------------
+
+        st.subheader("📷 Image Crowd Analysis")
+
+        upload_rgb = cv2.cvtColor(
+            upload_image,
+            cv2.COLOR_BGR2RGB,
         )
-        
-st.subheader("📷 Image Crowd Analysis")
 
-upload_rgb = cv2.cvtColor(
-    upload_image,
-    cv2.COLOR_BGR2RGB,
-)
+        st.image(
+            upload_rgb,
+            caption="Detected Crowd",
+            width=600,
+        )
 
-st.image(
-    upload_rgb,
-    caption="Detected Crowd",
-    width=600,
-)
-u1, u2 = st.columns(2)
+        u1, u2 = st.columns(2)
 
-with u1:
-    st.metric(
-        "👥 People Detected",
-        people_count,
-    )
+        with u1:
 
-with u2:
-    st.metric(
-        "⚠️ Crowd Risk",
-        risk,
-    )
+            st.metric(
+                "👥 People Detected",
+                people_count,
+            )
+
+        with u2:
+
+            st.metric(
+                "⚠️ Crowd Risk",
+                risk,
+            )
+
+        # ----------------------------------------------------
+        # IMAGE RISK MESSAGE + ALERT
+        # ----------------------------------------------------
 
         if risk == "HIGH":
 
@@ -1346,8 +1380,6 @@ with u2:
             st.success(
                 "✅ Crowd level is LOW."
             )
-
-
 # ============================================================
 # VIDEO UPLOAD
 # ============================================================
