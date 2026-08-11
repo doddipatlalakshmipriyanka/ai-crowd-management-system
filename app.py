@@ -836,10 +836,6 @@ with p2:
 # DOWNLOAD CAPTURED PHOTO
 # ============================================================
 
-# ============================================================
-# DOWNLOAD CAPTURED PHOTO
-# ============================================================
-
 if st.session_state.captured_photo is not None:
 
     try:
@@ -878,23 +874,11 @@ if st.session_state.captured_photo is not None:
         )
 
         st.code(str(e))
-    if success:
-        photo_bytes = encoded_image.tobytes()
-
-        st.download_button(
-            "📥 Download Captured Photo",
-            data=photo_bytes,
-            file_name="live_crowd_photo.jpg",
-            mime="image/jpeg",
-            key="download_live_photo",
-        )
-    else:
-        st.error("❌ Could not convert captured photo to JPEG.")
-except Exception as e:
-st.error("❌ Error while preparing captured photo.")
-st.code(str(e))
 
 
+# ============================================================
+# LIVE VIDEO
+# ============================================================
 # ============================================================
 # LIVE VIDEO
 # ============================================================
