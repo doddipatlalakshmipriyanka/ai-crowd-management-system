@@ -1260,15 +1260,13 @@ st.image(
     caption="Detected Crowd",
     use_container_width=True,
 )
+u1, u2 = st.columns(2)
 
-        u1, u2 = st.columns(2)
-
-        with u1:
-
-            st.metric(
-                "👥 People Detected",
-                people_count,
-            )
+with u1:
+    st.metric(
+        "👥 People Detected",
+        people_count,
+    )
 
         with u2:
 
