@@ -150,9 +150,9 @@ for path in banner_candidates:
 
 if banner_path:
     st.image(
-        str(banner_path),
-        width="stretch",
-    )
+    str(banner_path),
+    use_container_width=True,
+)
 else:
     st.warning(
         "⚠️ Banner image not found. "
@@ -816,11 +816,11 @@ if st.session_state.captured_photo is not None:
         cv2.COLOR_BGR2RGB,
     )
 
-    st.image(
-        photo_rgb,
-        caption="Captured Crowd Image",
-        width="stretch",
-    )
+st.image(
+    photo_rgb,
+    caption="Captured Crowd Image",
+    width=600,
+)
 
     p1, p2 = st.columns(2)
 
@@ -1258,14 +1258,11 @@ if uploaded_image is not None:
             "📷 Image Crowd Analysis"
         )
 
-        st.image(
-            cv2.cvtColor(
-                upload_image,
-                cv2.COLOR_BGR2RGB,
-            ),
-            caption="Detected Crowd",
-            width="stretch",
-        )
+st.image(
+    cv2.cvtColor(upload_image, cv2.COLOR_BGR2RGB),
+    caption="Detected Crowd",
+    use_container_width=True,
+)
 
         u1, u2 = st.columns(2)
 
