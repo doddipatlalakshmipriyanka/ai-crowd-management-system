@@ -816,11 +816,11 @@ if st.session_state.captured_photo is not None:
         cv2.COLOR_BGR2RGB,
     )
 
-st.image(
-    photo_rgb,
-    caption="Captured Crowd Image",
-    width=600,
-)
+    st.image(
+        photo_rgb,
+        caption="Captured Crowd Image",
+        width=600,
+    )
 p1, p2 = st.columns(2)
 with p1:
     st.metric(
