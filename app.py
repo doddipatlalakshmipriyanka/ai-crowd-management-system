@@ -890,10 +890,9 @@ if st.session_state.captured_photo is not None:
         )
     else:
         st.error("❌ Could not convert captured photo to JPEG.")
-
 except Exception as e:
-    st.error("❌ Error while preparing captured photo.")
-    st.code(str(e))
+st.error("❌ Error while preparing captured photo.")
+st.code(str(e))
 
 
 # ============================================================
