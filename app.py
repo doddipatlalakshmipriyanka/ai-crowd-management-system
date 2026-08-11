@@ -835,16 +835,34 @@ with p2:
     )
 
     # Convert captured image to JPEG
-try:
-    success, encoded_image = cv2.imencode(
-        ".jpg",
-        st.session_state.captured_photo,
-        [
-            int(cv2.IMWRITE_JPEG_QUALITY),
-            85,
-        ],
-    )
+if st.session_state.captured_photo is not None:
 
+    try:
+        success, encoded_image = cv2.imencode(
+            ".jpg",
+            st.session_state.captured_photo,
+            [
+                int(cv2.IMWRITE_JPEG_QUALITY),
+                85,
+            ],
+        )
+
+        if success:
+            photo_bytes = encoded_image.tobytes()
+
+            st.download_button(
+                "📥 Download Captured Photo",
+                data=photo_bytes,
+                file_name="live_crowd_photo.jpg",
+                mime="image/jpeg",
+                key="download_live_photo",
+            )
+        else:
+            st.error("❌ Could not convert captured photo to JPEG.")
+
+    except Exception as e:
+        st.error("❌ Error while preparing captured photo.")
+        st.code(str(e))
     if success:
         photo_bytes = encoded_image.tobytes()
 
@@ -1260,20 +1278,19 @@ if uploaded_image is not None:
         risk = get_risk(
             people_count
         )
+        
+st.subheader("📷 Image Crowd Analysis")
 
-        st.subheader(
-            "📷 Image Crowd Analysis"
-        )
-    st.image(
-        upload_rgb = cv2.cvtColor(
-            upload_image,
-            cv2.COLOR_BGR2RGB,
-        )
-    st.image(
-        upload_rgb,
-        caption="Detected Crowd",
-        use_container_width=True,
-    )
+upload_rgb = cv2.cvtColor(
+    upload_image,
+    cv2.COLOR_BGR2RGB,
+)
+
+st.image(
+    upload_rgb,
+    caption="Detected Crowd",
+    width=600,
+)
 u1, u2 = st.columns(2)
 
 with u1:
@@ -1281,11 +1298,12 @@ with u1:
         "👥 People Detected",
         people_count,
     )
-    with u2:
-        st.metric(
-            "⚠️ Crowd Risk",
-            risk,
-        )
+
+with u2:
+    st.metric(
+        "⚠️ Crowd Risk",
+        risk,
+    )
 
         if risk == "HIGH":
 
