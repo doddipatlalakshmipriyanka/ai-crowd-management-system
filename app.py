@@ -1266,7 +1266,12 @@ if uploaded_image is not None:
         )
 
 st.image(
-    cv2.cvtColor(upload_image, cv2.COLOR_BGR2RGB),
+    upload_rgb = cv2.cvtColor(
+    upload_image,
+    cv2.COLOR_BGR2RGB,
+)
+    st.image(
+    upload_rgb,
     caption="Detected Crowd",
     use_container_width=True,
 )
