@@ -691,7 +691,7 @@ with camera_center:
                 ]
             },
 
-            media_toggle_controls=True,
+           
         )
 
     except Exception as e:
