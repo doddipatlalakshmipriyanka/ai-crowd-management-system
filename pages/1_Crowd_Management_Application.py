@@ -459,6 +459,61 @@ def reverse_geocode(latitude, longitude):
     if latitude is None or longitude is None:
         return None
 
+    # --------------------------------------------------------
+    # Method 1: BigDataCloud
+    # --------------------------------------------------------
+    try:
+        url = "https://api.bigdatacloud.net/data/reverse-geocode-client"
+
+        params = {
+            "latitude": latitude,
+            "longitude": longitude,
+            "localityLanguage": "en",
+        }
+
+        response = requests.get(
+            url,
+            params=params,
+            timeout=15,
+        )
+
+        if response.status_code == 200:
+            data = response.json()
+
+            locality = data.get("locality")
+            city = data.get("city")
+            principal_subdivision = data.get(
+                "principalSubdivision"
+            )
+            country_name = data.get("countryName")
+            postcode = data.get("postcode")
+
+            parts = []
+
+            if locality:
+                parts.append(locality)
+
+            if city and city not in parts:
+                parts.append(city)
+
+            if principal_subdivision and principal_subdivision not in parts:
+                parts.append(principal_subdivision)
+
+            if postcode:
+                parts.append(postcode)
+
+            if country_name and country_name not in parts:
+                parts.append(country_name)
+
+            if parts:
+                return ", ".join(parts)
+
+    except Exception as exc:
+        print("BigDataCloud reverse geocoding error:", exc)
+
+    # --------------------------------------------------------
+    # Method 2: OpenStreetMap Nominatim fallback
+    # --------------------------------------------------------
     try:
         url = "https://nominatim.openstreetmap.org/reverse"
 
@@ -482,88 +537,82 @@ def reverse_geocode(latitude, longitude):
             timeout=15,
         )
 
-        if response.status_code != 200:
-            print("Nominatim error:", response.status_code)
-            return None
+        if response.status_code == 200:
+            data = response.json()
 
-        data = response.json()
+            address = data.get("address", {})
 
-        address = data.get("address", {})
+            house_number = address.get("house_number")
+            road = address.get("road")
 
-        # Get the most useful address components
-        house_number = address.get("house_number")
-        road = address.get("road")
+            neighbourhood = (
+                address.get("neighbourhood")
+                or address.get("suburb")
+                or address.get("village")
+            )
 
-        neighbourhood = (
-            address.get("neighbourhood")
-            or address.get("suburb")
-            or address.get("village")
-        )
+            city = (
+                address.get("city")
+                or address.get("town")
+                or address.get("municipality")
+                or address.get("village")
+            )
 
-        city = (
-            address.get("city")
-            or address.get("town")
-            or address.get("municipality")
-            or address.get("village")
-        )
+            district = (
+                address.get("county")
+                or address.get("state_district")
+            )
 
-        district = (
-            address.get("county")
-            or address.get("state_district")
-        )
+            state = address.get("state")
+            postcode = address.get("postcode")
+            country = address.get("country")
 
-        state = address.get("state")
-        postcode = address.get("postcode")
-        country = address.get("country")
+            parts = []
 
-        parts = []
+            if house_number and road:
+                parts.append(
+                    f"{house_number}, {road}"
+                )
+            elif road:
+                parts.append(road)
 
-        if house_number and road:
-            parts.append(f"{house_number}, {road}")
-        elif road:
-            parts.append(road)
+            if neighbourhood and neighbourhood not in parts:
+                parts.append(neighbourhood)
 
-        if neighbourhood and neighbourhood not in parts:
-            parts.append(neighbourhood)
+            if city and city not in parts:
+                parts.append(city)
 
-        if city and city not in parts:
-            parts.append(city)
+            if district and district not in parts:
+                parts.append(district)
 
-        if district and district not in parts:
-            parts.append(district)
+            if state and state not in parts:
+                parts.append(state)
 
-        if state and state not in parts:
-            parts.append(state)
+            if postcode:
+                parts.append(postcode)
 
-        if postcode:
-            parts.append(postcode)
+            if country:
+                parts.append(country)
 
-        if country:
-            parts.append(country)
+            if parts:
+                return ", ".join(parts)
 
-        if parts:
-            return ", ".join(parts)
+            display_name = data.get("display_name")
 
-        # Fallback to Nominatim's complete display name
-        display_name = data.get("display_name")
-
-        if display_name:
-            return display_name
-
-        return None
-
-    except requests.exceptions.Timeout:
-        print("Nominatim request timed out.")
-        return None
-
-    except requests.exceptions.RequestException as exc:
-        print("Location request error:", exc)
-        return None
+            if display_name:
+                return display_name
 
     except Exception as exc:
-        print("Reverse geocoding error:", exc)
-        return None
+        print("Nominatim reverse geocoding error:", exc)
 
+    # --------------------------------------------------------
+    # Final fallback
+    # --------------------------------------------------------
+    return (
+        f"GPS Location "
+        f"(Latitude: {latitude:.6f}, "
+        f"Longitude: {longitude:.6f})"
+    )
 # ============================================================
 # CAMERA FRAME CALLBACK
 # ============================================================
@@ -1125,19 +1174,23 @@ if latitude is not None and longitude is not None:
 
     st.markdown("### 📍 Current Location")
 
+    # --------------------------------------------------------
+    # LOCATION TEXT
+    # --------------------------------------------------------
+
     if location_text:
-        st.success("📍 Current Location")
 
         st.markdown(
             f"""
             <div style="
-                padding: 15px;
-                border-radius: 10px;
-                border: 1px solid #ddd;
+                padding: 18px;
+                border-radius: 12px;
+                border: 1px solid #cccccc;
                 background-color: #f8f9fa;
                 font-size: 18px;
+                line-height: 1.6;
             ">
-                📍 <b>Location:</b><br>
+                <b>📍 Location:</b><br>
                 {location_text}
             </div>
             """,
@@ -1145,20 +1198,31 @@ if latitude is not None and longitude is not None:
         )
 
     else:
+
         st.warning(
             "📍 Address could not be determined."
         )
 
         st.info(
-            f"📍 Coordinates: {latitude:.6f}, {longitude:.6f}"
+            f"Latitude: {latitude:.6f}  \n"
+            f"Longitude: {longitude:.6f}"
         )
+
+    # --------------------------------------------------------
+    # GPS ACCURACY
+    # --------------------------------------------------------
 
     if accuracy is not None:
         st.caption(
-            f"GPS accuracy: approximately ±{accuracy:.1f} m"
+            f"🎯 GPS accuracy: approximately ±{accuracy:.1f} meters"
         )
 
-    # Map
+    # --------------------------------------------------------
+    # MAP
+    # --------------------------------------------------------
+
+    st.markdown("### 🗺️ Location on Map")
+
     gps_map = folium.Map(
         location=[latitude, longitude],
         zoom_start=16,
@@ -1173,11 +1237,12 @@ if latitude is not None and longitude is not None:
     st_folium(
         gps_map,
         width=700,
-        height=350,
+        height=400,
         key="current_gps_map",
     )
 
 else:
+
     st.info(
         "📍 GPS location has not been detected yet. "
         "Click GET GPS LOCATION and allow browser location permission."
