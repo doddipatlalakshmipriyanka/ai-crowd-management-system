@@ -533,21 +533,13 @@ def send_high_crowd_alert_once(
     )
 
 
-# ============================================================
-# REVERSE GEOCODING
-# ============================================================
-
 def reverse_geocode(latitude, longitude):
 
     if latitude is None or longitude is None:
-
         return None
 
     try:
-
-        url = (
-            "https://nominatim.openstreetmap.org/reverse"
-        )
+        url = "https://nominatim.openstreetmap.org/reverse"
 
         params = {
             "lat": latitude,
@@ -558,8 +550,7 @@ def reverse_geocode(latitude, longitude):
         }
 
         headers = {
-            "User-Agent":
-            "AI-Crowd-Management-System/1.0"
+            "User-Agent": "AI-Crowd-Management-System/1.0"
         }
 
         response = requests.get(
@@ -570,56 +561,49 @@ def reverse_geocode(latitude, longitude):
         )
 
         if response.status_code != 200:
-
             return None
 
         data = response.json()
 
-        display_name = data.get(
-            "display_name"
+        address = data.get("address", {})
+
+        # Get useful location components
+        area = (
+            address.get("village")
+            or address.get("town")
+            or address.get("city")
+            or address.get("municipality")
         )
 
-        if display_name:
-
-            return display_name
-
-        address = data.get(
-            "address",
-            {}
+        district = (
+            address.get("county")
+            or address.get("state_district")
         )
+
+        state = address.get("state")
+        country = address.get("country")
 
         parts = []
 
-        for key in [
-            "amenity",
-            "building",
-            "road",
-            "suburb",
-            "town",
-            "city",
-            "state",
-            "postcode",
-            "country",
+        for value in [
+            area,
+            district,
+            state,
+            country,
         ]:
-
-            value = address.get(key)
-
             if value and value not in parts:
-
                 parts.append(value)
 
         if parts:
-
             return ", ".join(parts)
+
+        return None
 
     except Exception as e:
 
-        print(
-            "Reverse geocoding error:",
-            e
-        )
+        print("Reverse geocoding error:", e)
 
-    return None
+        return None
 
 
 # ============================================================
