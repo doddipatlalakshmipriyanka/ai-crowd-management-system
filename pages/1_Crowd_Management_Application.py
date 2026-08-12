@@ -821,7 +821,10 @@ if capture_photo:
 
     else:
 
-        # Get current crowd information
+        # ----------------------------------------------------
+        # GET CURRENT CROWD INFORMATION
+        # ----------------------------------------------------
+
         photo_people = camera_store.get(
             "people",
             0
@@ -916,56 +919,66 @@ if capture_photo:
                 f"People: {photo_people}"
             )
 
-# ----------------------------------------------------
-# HIGH CROWD EMAIL ALERT
-# ----------------------------------------------------
+        # ----------------------------------------------------
+        # HIGH CROWD EMAIL ALERT
+        # ----------------------------------------------------
 
-if photo_risk == "HIGH":
+        if photo_risk == "HIGH":
 
-    st.error(
-        f"🚨 HIGH CROWD ALERT! "
-        f"People detected: {photo_people}"
-    )
+            st.error(
+                f"🚨 HIGH CROWD ALERT! "
+                f"People detected: {photo_people}"
+            )
 
-    # Get GPS information
-    alert_location = gps_store.get(
-        "location_text"
-    )
+            # ------------------------------------------------
+            # GET GPS INFORMATION
+            # ------------------------------------------------
 
-    alert_latitude = gps_store.get(
-        "latitude"
-    )
+            alert_location = gps_store.get(
+                "location_text"
+            )
 
-    alert_longitude = gps_store.get(
-        "longitude"
-    )
+            alert_latitude = gps_store.get(
+                "latitude"
+            )
 
-    # Send email directly so errors can be detected
-    alert_sent = send_crowd_alert(
-        people_count=photo_people,
-        location_text=alert_location,
-        latitude=alert_latitude,
-        longitude=alert_longitude,
-        source="Live Photo Capture",
-    )
+            alert_longitude = gps_store.get(
+                "longitude"
+            )
 
-    if alert_sent:
+            # ------------------------------------------------
+            # SEND EMAIL
+            # ------------------------------------------------
 
-        st.success(
-            "📧 HIGH crowd alert email sent successfully."
-        )
+            alert_sent = send_crowd_alert(
+                people_count=photo_people,
+                location_text=alert_location,
+                latitude=alert_latitude,
+                longitude=alert_longitude,
+                source="Live Photo Capture",
+            )
 
-    else:
+            # ------------------------------------------------
+            # EMAIL RESULT
+            # ------------------------------------------------
 
-        st.warning(
-            "⚠️ HIGH crowd detected, "
-            "but the email alert could not be sent."
-        )
+            if alert_sent:
 
-        st.info(
-            "Please check your Gmail/Streamlit Secrets "
-            "configuration."
-        )
+                st.success(
+                    "📧 HIGH crowd alert email sent successfully."
+                )
+
+            else:
+
+                st.warning(
+                    "⚠️ HIGH crowd detected, "
+                    "but the email alert could not be sent."
+                )
+
+                st.info(
+                    "Please check your Gmail/Streamlit "
+                    "Secrets configuration."
+                )
 # ============================================================
 # SHOW CAPTURED PHOTO
 # ============================================================
