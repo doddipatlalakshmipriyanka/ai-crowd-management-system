@@ -36,7 +36,7 @@ st.markdown(
     """
     <style>
         .block-container {
-            max-width: 1000px;
+            max-width: 1400px;
             margin: auto;
             padding-top: 2rem;
             padding-left: 2rem;
@@ -58,7 +58,6 @@ RECORD_DIR.mkdir(parents=True, exist_ok=True)
 
 CAMERA_CONFIDENCE = 0.25
 CAMERA_IMAGE_SIZE = 416
-CAMERA_DISPLAY_WIDTH = 650
 
 HIGH_FRAMES_REQUIRED = 10
 ALERT_COOLDOWN_SECONDS = 300
