@@ -209,8 +209,8 @@ def load_model():
 
     if not model_path.exists():
         raise FileNotFoundError(
-            "yolov8n.pt was not found. "
-            "Put yolov8n.pt in the same folder as app.py."
+            "yolov8s.pt was not found. "
+            "Put yolov8s.pt in the same folder as app.py."
         )
 
     return YOLO(str(model_path))
@@ -280,25 +280,26 @@ def send_crowd_alert(
 ):
 
     try:
-
         sender_email = EMAIL_CONFIG["sender_email"]
         sender_password = EMAIL_CONFIG["sender_password"]
         admin_email = EMAIL_CONFIG["admin_email"]
 
-        if not sender_email or not sender_password or not admin_email:
+        if not sender_email:
+            print("ERROR: ALERT_EMAIL is missing.")
+            return False
 
-            print(
-                "Email alert skipped. Configure "
-                "ALERT_EMAIL, ALERT_PASSWORD and ADMIN_EMAIL."
-            )
+        if not sender_password:
+            print("ERROR: ALERT_PASSWORD is missing.")
+            return False
 
+        if not admin_email:
+            print("ERROR: ADMIN_EMAIL is missing.")
             return False
 
         if location_text:
             final_location = location_text
 
         elif latitude is not None and longitude is not None:
-
             final_location = (
                 f"Latitude: {float(latitude):.6f}\n"
                 f"Longitude: {float(longitude):.6f}"
@@ -317,8 +318,7 @@ def send_crowd_alert(
         message["To"] = admin_email
 
         message.set_content(
-            f"""
-HIGH CROWD ALERT
+            f"""HIGH CROWD ALERT
 ==============================
 
 Source:
@@ -330,38 +330,45 @@ Detected People:
 Risk Level:
 HIGH
 
-LOCATION:
+Location:
 {final_location}
 
 Please verify the situation and take appropriate action.
 
-This is an automated alert from the
-AI Crowd Management System.
+AI Crowd Management System
 """
         )
+
+        print("Connecting to Gmail SMTP...")
 
         with smtplib.SMTP_SSL(
             "smtp.gmail.com",
             465,
-            timeout=20,
+            timeout=20
         ) as server:
+
+            print("Logging into Gmail...")
 
             server.login(
                 sender_email,
-                sender_password,
+                sender_password
             )
 
+            print("Sending email...")
+
             server.send_message(message)
+
+        print("EMAIL SENT SUCCESSFULLY.")
 
         return True
 
     except Exception as e:
 
-        print("Email alert error:", e)
+        print("EMAIL ALERT ERROR:")
+        print(type(e).__name__)
+        print(str(e))
 
         return False
-
-
 # ============================================================
 # REVERSE GEOCODING
 # Converts latitude/longitude into readable location text
@@ -909,41 +916,56 @@ if capture_photo:
                 f"People: {photo_people}"
             )
 
-        # ----------------------------------------------------
-        # HIGH CROWD EMAIL ALERT
-        # ----------------------------------------------------
+# ----------------------------------------------------
+# HIGH CROWD EMAIL ALERT
+# ----------------------------------------------------
 
-        if photo_risk == "HIGH":
+if photo_risk == "HIGH":
 
-            try:
+    st.error(
+        f"🚨 HIGH CROWD ALERT! "
+        f"People detected: {photo_people}"
+    )
 
-                threading.Thread(
-                    target=send_crowd_alert,
-                    kwargs={
-                        "people_count": photo_people,
-                        "location_text": gps_store.get(
-                            "location_text"
-                        ),
-                        "latitude": gps_store.get(
-                            "latitude"
-                        ),
-                        "longitude": gps_store.get(
-                            "longitude"
-                        ),
-                        "source": "Live Photo Capture",
-                    },
-                    daemon=True,
-                ).start()
+    # Get GPS information
+    alert_location = gps_store.get(
+        "location_text"
+    )
 
-            except Exception as e:
+    alert_latitude = gps_store.get(
+        "latitude"
+    )
 
-                st.warning(
-                    "⚠️ Alert could not be started."
-                )
+    alert_longitude = gps_store.get(
+        "longitude"
+    )
 
-                st.code(
-                    str(e)
-                )
+    # Send email directly so errors can be detected
+    alert_sent = send_crowd_alert(
+        people_count=photo_people,
+        location_text=alert_location,
+        latitude=alert_latitude,
+        longitude=alert_longitude,
+        source="Live Photo Capture",
+    )
+
+    if alert_sent:
+
+        st.success(
+            "📧 HIGH crowd alert email sent successfully."
+        )
+
+    else:
+
+        st.warning(
+            "⚠️ HIGH crowd detected, "
+            "but the email alert could not be sent."
+        )
+
+        st.info(
+            "Please check your Gmail/Streamlit Secrets "
+            "configuration."
+        )
 # ============================================================
 # SHOW CAPTURED PHOTO
 # ============================================================
