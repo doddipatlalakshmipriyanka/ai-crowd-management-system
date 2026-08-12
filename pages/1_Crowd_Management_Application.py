@@ -31,21 +31,27 @@ st.set_page_config(
     page_icon="👥",
     layout="wide",
 )
-st.markdown("""
-<style>
-    /* Reduce the overall application width */
-    .block-container {
-        max-width: 1000px;
-        margin: auto;
-        padding-top: 2rem;
-        padding-left: 2rem;
-        padding-right: 2rem;
-    }
-</style>
-""", unsafe_allow_html=True)
+
+st.markdown(
+    """
+    <style>
+        .block-container {
+            max-width: 1000px;
+            margin: auto;
+            padding-top: 2rem;
+            padding-left: 2rem;
+            padding-right: 2rem;
+        }
+    </style>
+    """,
+    unsafe_allow_html=True,
+)
+
+
 # ============================================================
 # CONSTANTS
 # ============================================================
+
 st.sidebar.markdown("---")
 st.sidebar.subheader("⚙️ Crowd Threshold Settings")
 
@@ -55,24 +61,22 @@ crowd_threshold = st.sidebar.number_input(
     max_value=500,
     value=20,
     step=1,
-    help="Set the number of people above which the crowd is considered HIGH."
+    help="Set the number of people above which the crowd is considered HIGH.",
 )
 
 st.sidebar.info(
     f"🚨 HIGH crowd when people ≥ {crowd_threshold}"
 )
+
 CAMERA_CONFIDENCE = 0.25
 CAMERA_IMAGE_SIZE = 416
 
-# Crowd thresholds
 HIGH_THRESHOLD = crowd_threshold
 HIGH_FRAMES_REQUIRED = 10
 ALERT_COOLDOWN_SECONDS = 300
 
-# Smaller camera display
 CAMERA_DISPLAY_WIDTH = 650
 
-# Folders
 RECORD_DIR = Path("camera_records")
 RECORD_DIR.mkdir(exist_ok=True)
 
@@ -120,6 +124,19 @@ if "captured_photo_people" not in st.session_state:
 if "captured_photo_risk" not in st.session_state:
     st.session_state.captured_photo_risk = "LOW"
 
+# ------------------------------------------------------------
+# NEW: prevent repeated alerts for same uploaded/captured item
+# ------------------------------------------------------------
+
+if "live_photo_alert_sent" not in st.session_state:
+    st.session_state.live_photo_alert_sent = False
+
+if "uploaded_image_alert_id" not in st.session_state:
+    st.session_state.uploaded_image_alert_id = None
+
+if "uploaded_video_alert_id" not in st.session_state:
+    st.session_state.uploaded_video_alert_id = None
+
 
 frame_store = st.session_state.frame_store
 camera_store = st.session_state.camera_store
@@ -164,9 +181,9 @@ for path in banner_candidates:
 
 if banner_path:
     st.image(
-    str(banner_path),
-    use_container_width=True,
-)
+        str(banner_path),
+        use_container_width=True,
+    )
 else:
     st.warning(
         "⚠️ Banner image not found. "
@@ -205,9 +222,11 @@ with c3:
 
 @st.cache_resource
 def load_model():
+
     model_path = Path("yolov8s.pt")
 
     if not model_path.exists():
+
         raise FileNotFoundError(
             "yolov8s.pt was not found. "
             "Put yolov8s.pt in the same folder as app.py."
@@ -217,9 +236,11 @@ def load_model():
 
 
 try:
+
     model = load_model()
 
 except Exception as e:
+
     st.error("❌ YOLO model could not be loaded.")
     st.code(str(e))
     st.stop()
@@ -230,16 +251,24 @@ except Exception as e:
 # ============================================================
 
 def get_risk(count, threshold):
-    medium_threshold = max(1, threshold // 2)
+
+    medium_threshold = max(
+        1,
+        threshold // 2
+    )
 
     if count < medium_threshold:
+
         return "LOW"
 
     elif count < threshold:
+
         return "MEDIUM"
 
     else:
+
         return "HIGH"
+
 
 # ============================================================
 # EMAIL CONFIGURATION
@@ -248,15 +277,28 @@ def get_risk(count, threshold):
 def load_email_config():
 
     try:
+
         secrets = st.secrets
 
         return {
-            "sender_email": secrets.get("ALERT_EMAIL", ""),
-            "sender_password": secrets.get("ALERT_PASSWORD", ""),
-            "admin_email": secrets.get("ADMIN_EMAIL", ""),
+            "sender_email": secrets.get(
+                "ALERT_EMAIL",
+                ""
+            ),
+
+            "sender_password": secrets.get(
+                "ALERT_PASSWORD",
+                ""
+            ),
+
+            "admin_email": secrets.get(
+                "ADMIN_EMAIL",
+                ""
+            ),
         }
 
     except Exception:
+
         return {
             "sender_email": "",
             "sender_password": "",
@@ -280,32 +322,39 @@ def send_crowd_alert(
 ):
 
     try:
+
         sender_email = EMAIL_CONFIG["sender_email"]
         sender_password = EMAIL_CONFIG["sender_password"]
         admin_email = EMAIL_CONFIG["admin_email"]
 
         if not sender_email:
+
             print("ERROR: ALERT_EMAIL is missing.")
             return False
 
         if not sender_password:
+
             print("ERROR: ALERT_PASSWORD is missing.")
             return False
 
         if not admin_email:
+
             print("ERROR: ADMIN_EMAIL is missing.")
             return False
 
         if location_text:
+
             final_location = location_text
 
         elif latitude is not None and longitude is not None:
+
             final_location = (
                 f"Latitude: {float(latitude):.6f}\n"
                 f"Longitude: {float(longitude):.6f}"
             )
 
         else:
+
             final_location = "GPS location unavailable."
 
         message = EmailMessage()
@@ -369,21 +418,136 @@ AI Crowd Management System
         print(str(e))
 
         return False
+
+
+# ============================================================
+# CENTRAL HIGH-CROWD ALERT FUNCTION
+# ============================================================
+
+def send_high_crowd_alert_once(
+    people_count,
+    source,
+    alert_id=None,
+):
+
+    location_text = gps_store.get(
+        "location_text"
+    )
+
+    latitude = gps_store.get(
+        "latitude"
+    )
+
+    longitude = gps_store.get(
+        "longitude"
+    )
+
+    # --------------------------------------------------------
+    # LIVE PHOTO
+    # --------------------------------------------------------
+
+    if source == "Live Photo Capture":
+
+        if st.session_state.live_photo_alert_sent:
+
+            return False
+
+        alert_sent = send_crowd_alert(
+            people_count=people_count,
+            location_text=location_text,
+            latitude=latitude,
+            longitude=longitude,
+            source=source,
+        )
+
+        if alert_sent:
+
+            st.session_state.live_photo_alert_sent = True
+
+        return alert_sent
+
+    # --------------------------------------------------------
+    # UPLOADED IMAGE
+    # --------------------------------------------------------
+
+    if source == "Uploaded Image":
+
+        if (
+            alert_id is not None
+            and st.session_state.uploaded_image_alert_id == alert_id
+        ):
+
+            return False
+
+        alert_sent = send_crowd_alert(
+            people_count=people_count,
+            location_text=location_text,
+            latitude=latitude,
+            longitude=longitude,
+            source=source,
+        )
+
+        if alert_sent:
+
+            st.session_state.uploaded_image_alert_id = alert_id
+
+        return alert_sent
+
+    # --------------------------------------------------------
+    # UPLOADED VIDEO
+    # --------------------------------------------------------
+
+    if source == "Uploaded Video":
+
+        if (
+            alert_id is not None
+            and st.session_state.uploaded_video_alert_id == alert_id
+        ):
+
+            return False
+
+        alert_sent = send_crowd_alert(
+            people_count=people_count,
+            location_text=location_text,
+            latitude=latitude,
+            longitude=longitude,
+            source=source,
+        )
+
+        if alert_sent:
+
+            st.session_state.uploaded_video_alert_id = alert_id
+
+        return alert_sent
+
+    # --------------------------------------------------------
+    # OTHER SOURCES
+    # --------------------------------------------------------
+
+    return send_crowd_alert(
+        people_count=people_count,
+        location_text=location_text,
+        latitude=latitude,
+        longitude=longitude,
+        source=source,
+    )
+
+
 # ============================================================
 # REVERSE GEOCODING
-# Converts latitude/longitude into readable location text
-# Example:
-# "VSM College of Engineering, Ramachandrapuram, Andhra Pradesh"
 # ============================================================
 
 def reverse_geocode(latitude, longitude):
 
     if latitude is None or longitude is None:
+
         return None
 
     try:
 
-        url = "https://nominatim.openstreetmap.org/reverse"
+        url = (
+            "https://nominatim.openstreetmap.org/reverse"
+        )
 
         params = {
             "lat": latitude,
@@ -394,7 +558,8 @@ def reverse_geocode(latitude, longitude):
         }
 
         headers = {
-            "User-Agent": "AI-Crowd-Management-System/1.0"
+            "User-Agent":
+            "AI-Crowd-Management-System/1.0"
         }
 
         response = requests.get(
@@ -405,16 +570,23 @@ def reverse_geocode(latitude, longitude):
         )
 
         if response.status_code != 200:
+
             return None
 
         data = response.json()
 
-        display_name = data.get("display_name")
+        display_name = data.get(
+            "display_name"
+        )
 
         if display_name:
+
             return display_name
 
-        address = data.get("address", {})
+        address = data.get(
+            "address",
+            {}
+        )
 
         parts = []
 
@@ -433,23 +605,34 @@ def reverse_geocode(latitude, longitude):
             value = address.get(key)
 
             if value and value not in parts:
+
                 parts.append(value)
 
         if parts:
+
             return ", ".join(parts)
 
     except Exception as e:
 
-        print("Reverse geocoding error:", e)
+        print(
+            "Reverse geocoding error:",
+            e
+        )
 
     return None
+
+
 # ============================================================
 # CAMERA FRAME CALLBACK
 # ============================================================
 
-def camera_frame_callback(frame: av.VideoFrame):
+def camera_frame_callback(
+    frame: av.VideoFrame
+):
 
-    image = frame.to_ndarray(format="bgr24")
+    image = frame.to_ndarray(
+        format="bgr24"
+    )
 
     try:
 
@@ -463,7 +646,10 @@ def camera_frame_callback(frame: av.VideoFrame):
 
     except Exception as e:
 
-        print("YOLO camera error:", e)
+        print(
+            "YOLO camera error:",
+            e
+        )
 
         return frame
 
@@ -472,16 +658,23 @@ def camera_frame_callback(frame: av.VideoFrame):
     for result in results:
 
         if result.boxes is None:
+
             continue
 
         for box in result.boxes:
 
             try:
-                class_id = int(box.cls[0])
+
+                class_id = int(
+                    box.cls[0]
+                )
+
             except Exception:
+
                 continue
 
             if class_id != 0:
+
                 continue
 
             people_count += 1
@@ -502,7 +695,10 @@ def camera_frame_callback(frame: av.VideoFrame):
             cv2.putText(
                 image,
                 "Person",
-                (x1, max(y1 - 8, 20)),
+                (
+                    x1,
+                    max(y1 - 8, 20)
+                ),
                 cv2.FONT_HERSHEY_SIMPLEX,
                 0.5,
                 (0, 255, 0),
@@ -520,7 +716,9 @@ def camera_frame_callback(frame: av.VideoFrame):
 
     with frame_store["lock"]:
 
-        frame_store["frame"] = image.copy()
+        frame_store["frame"] = (
+            image.copy()
+        )
 
     # --------------------------------------------------------
     # Camera statistics
@@ -528,32 +726,47 @@ def camera_frame_callback(frame: av.VideoFrame):
 
     should_alert = False
 
-    alert_latitude = gps_store.get("latitude")
-    alert_longitude = gps_store.get("longitude")
-    alert_location = gps_store.get("location_text")
+    alert_latitude = gps_store.get(
+        "latitude"
+    )
 
-    camera_store["people"] = people_count
-    camera_store["risk"] = risk
+    alert_longitude = gps_store.get(
+        "longitude"
+    )
 
-    if people_count >= HIGH_THRESHOLD:
+    alert_location = gps_store.get(
+        "location_text"
+    )
 
-        camera_store["high_frames"] += 1
+    with camera_store["lock"]:
 
-    else:
+        camera_store["people"] = (
+            people_count
+        )
 
-        camera_store["high_frames"] = 0
+        camera_store["risk"] = risk
 
-    now = time.time()
+        if people_count >= HIGH_THRESHOLD:
 
-    if (
-        camera_store["high_frames"] >= HIGH_FRAMES_REQUIRED
-        and now - camera_store["last_alert"]
-        >= ALERT_COOLDOWN_SECONDS
-    ):
+            camera_store["high_frames"] += 1
 
-        camera_store["last_alert"] = now
+        else:
 
-        should_alert = True
+            camera_store["high_frames"] = 0
+
+        now = time.time()
+
+        if (
+            camera_store["high_frames"]
+            >= HIGH_FRAMES_REQUIRED
+            and
+            now - camera_store["last_alert"]
+            >= ALERT_COOLDOWN_SECONDS
+        ):
+
+            camera_store["last_alert"] = now
+
+            should_alert = True
 
     # --------------------------------------------------------
     # Send HIGH crowd alert
@@ -579,15 +792,27 @@ def camera_frame_callback(frame: av.VideoFrame):
 
     if risk == "LOW":
 
-        color = (0, 255, 0)
+        color = (
+            0,
+            255,
+            0,
+        )
 
     elif risk == "MEDIUM":
 
-        color = (0, 255, 255)
+        color = (
+            0,
+            255,
+            255,
+        )
 
     else:
 
-        color = (0, 0, 255)
+        color = (
+            0,
+            0,
+            255,
+        )
 
     # --------------------------------------------------------
     # Overlay
@@ -613,7 +838,9 @@ def camera_frame_callback(frame: av.VideoFrame):
         2,
     )
 
-    if gps_store.get("latitude") is not None:
+    if gps_store.get(
+        "latitude"
+    ) is not None:
 
         cv2.putText(
             image,
@@ -681,8 +908,6 @@ st.write(
     "or recording live video."
 )
 
-
-# Center the camera to make it smaller
 camera_left, camera_center, camera_right = st.columns(
     [1, 2, 1]
 )
@@ -714,8 +939,6 @@ with camera_center:
                     }
                 ]
             },
-
-           
         )
 
     except Exception as e:
@@ -724,7 +947,9 @@ with camera_center:
             "❌ Camera could not be started."
         )
 
-        st.code(str(e))
+        st.code(
+            str(e)
+        )
 
         ctx = None
 
@@ -754,10 +979,6 @@ if ctx is not None:
 # LIVE PHOTO CAPTURE
 # ============================================================
 
-# ============================================================
-# 📸 LIVE PHOTO CAPTURE
-# ============================================================
-
 st.markdown("---")
 
 st.subheader("📸 Live Photo Capture")
@@ -767,18 +988,10 @@ st.write(
     "then click **Capture Current Image**."
 )
 
-# ------------------------------------------------------------
-# CAMERA STATUS
-# ------------------------------------------------------------
-
 camera_running = (
     ctx is not None
     and ctx.state.playing
 )
-
-# ------------------------------------------------------------
-# CAPTURE BUTTON
-# ------------------------------------------------------------
 
 capture_photo = st.button(
     "📸 Capture Current Image",
@@ -786,11 +999,15 @@ capture_photo = st.button(
     disabled=not camera_running,
 )
 
-# ------------------------------------------------------------
-# CAPTURE CURRENT PROCESSED FRAME
-# ------------------------------------------------------------
+
+# ============================================================
+# CAPTURE PHOTO
+# ============================================================
 
 if capture_photo:
+
+    # New capture = allow a new alert
+    st.session_state.live_photo_alert_sent = False
 
     with frame_store["lock"]:
 
@@ -804,10 +1021,6 @@ if capture_photo:
                 frame_store["frame"].copy()
             )
 
-    # --------------------------------------------------------
-    # NO FRAME
-    # --------------------------------------------------------
-
     if current_frame is None:
 
         st.warning(
@@ -815,15 +1028,7 @@ if capture_photo:
             "is ready yet. Wait 1–2 seconds and try again."
         )
 
-    # --------------------------------------------------------
-    # FRAME AVAILABLE
-    # --------------------------------------------------------
-
     else:
-
-        # ----------------------------------------------------
-        # GET CURRENT CROWD INFORMATION
-        # ----------------------------------------------------
 
         photo_people = camera_store.get(
             "people",
@@ -834,10 +1039,6 @@ if capture_photo:
             "risk",
             "LOW"
         )
-
-        # ----------------------------------------------------
-        # SAVE CAPTURED PHOTO
-        # ----------------------------------------------------
 
         st.session_state.captured_photo = (
             current_frame.copy()
@@ -855,10 +1056,6 @@ if capture_photo:
             "📸 Photo captured successfully!"
         )
 
-        # ----------------------------------------------------
-        # DISPLAY CAPTURED PHOTO
-        # ----------------------------------------------------
-
         st.subheader(
             "🖼️ Captured Crowd Image"
         )
@@ -873,10 +1070,6 @@ if capture_photo:
             caption="Live Captured Crowd",
             width=700
         )
-
-        # ----------------------------------------------------
-        # CROWD INFORMATION
-        # ----------------------------------------------------
 
         photo_col1, photo_col2 = st.columns(2)
 
@@ -905,6 +1098,39 @@ if capture_photo:
                 f"People: {photo_people}"
             )
 
+            # ------------------------------------------------
+            # SEND EMAIL
+            # ------------------------------------------------
+
+            alert_sent = send_high_crowd_alert_once(
+                people_count=photo_people,
+                source="Live Photo Capture",
+            )
+
+            if alert_sent:
+
+                st.success(
+                    "📧 HIGH crowd alert email sent successfully."
+                )
+
+            elif st.session_state.live_photo_alert_sent:
+
+                st.info(
+                    "📧 HIGH crowd alert was already sent "
+                    "for this captured photo."
+                )
+
+            else:
+
+                st.warning(
+                    "⚠️ HIGH crowd detected, "
+                    "but the email alert could not be sent."
+                )
+
+                st.info(
+                    "Please check your Gmail/Streamlit Secrets configuration."
+                )
+
         elif photo_risk == "MEDIUM":
 
             st.warning(
@@ -919,73 +1145,16 @@ if capture_photo:
                 f"People: {photo_people}"
             )
 
-        # ----------------------------------------------------
-        # HIGH CROWD EMAIL ALERT
-        # ----------------------------------------------------
 
-        if photo_risk == "HIGH":
-
-            st.error(
-                f"🚨 HIGH CROWD ALERT! "
-                f"People detected: {photo_people}"
-            )
-
-            # ------------------------------------------------
-            # GET GPS INFORMATION
-            # ------------------------------------------------
-
-            alert_location = gps_store.get(
-                "location_text"
-            )
-
-            alert_latitude = gps_store.get(
-                "latitude"
-            )
-
-            alert_longitude = gps_store.get(
-                "longitude"
-            )
-
-            # ------------------------------------------------
-            # SEND EMAIL
-            # ------------------------------------------------
-
-            alert_sent = send_crowd_alert(
-                people_count=photo_people,
-                location_text=alert_location,
-                latitude=alert_latitude,
-                longitude=alert_longitude,
-                source="Live Photo Capture",
-            )
-
-            # ------------------------------------------------
-            # EMAIL RESULT
-            # ------------------------------------------------
-
-            if alert_sent:
-
-                st.success(
-                    "📧 HIGH crowd alert email sent successfully."
-                )
-
-            else:
-
-                st.warning(
-                    "⚠️ HIGH crowd detected, "
-                    "but the email alert could not be sent."
-                )
-
-                st.info(
-                    "Please check your Gmail/Streamlit "
-                    "Secrets configuration."
-                )
 # ============================================================
 # SHOW CAPTURED PHOTO
 # ============================================================
 
 if st.session_state.captured_photo is not None:
 
-    st.subheader("📸 Captured Live Photo")
+    st.subheader(
+        "📸 Captured Live Photo"
+    )
 
     photo_rgb = cv2.cvtColor(
         st.session_state.captured_photo,
@@ -997,18 +1166,23 @@ if st.session_state.captured_photo is not None:
         caption="Captured Crowd Image",
         width=600,
     )
-p1, p2 = st.columns(2)
-with p1:
-    st.metric(
-        "👥 People Detected",
-        st.session_state.captured_photo_people,
-    )
 
-with p2:
-    st.metric(
-        "⚠️ Crowd Risk",
-        st.session_state.captured_photo_risk,
-    )
+    p1, p2 = st.columns(2)
+
+    with p1:
+
+        st.metric(
+            "👥 People Detected",
+            st.session_state.captured_photo_people,
+        )
+
+    with p2:
+
+        st.metric(
+            "⚠️ Crowd Risk",
+            st.session_state.captured_photo_risk,
+        )
+
 
 # ============================================================
 # DOWNLOAD CAPTURED PHOTO
@@ -1029,7 +1203,9 @@ if st.session_state.captured_photo is not None:
 
         if success:
 
-            photo_bytes = encoded_image.tobytes()
+            photo_bytes = (
+                encoded_image.tobytes()
+            )
 
             st.download_button(
                 "📥 Download Captured Photo",
@@ -1051,16 +1227,13 @@ if st.session_state.captured_photo is not None:
             "❌ Error while preparing captured photo."
         )
 
-        st.code(str(e))
-
+        st.code(
+            str(e)
+        )
 
 
 # ============================================================
 # LIVE VIDEO
-# ============================================================
-
-# ============================================================
-# 🎥 LIVE VIDEO CAPTURE
 # ============================================================
 
 st.markdown("---")
@@ -1084,15 +1257,13 @@ else:
 
         try:
 
-            video_bytes = record_file.read_bytes()
+            video_bytes = (
+                record_file.read_bytes()
+            )
 
             st.success(
                 "✅ Live crowd video recording completed."
             )
-
-            # ------------------------------------------------
-            # DISPLAY RECORDED VIDEO
-            # ------------------------------------------------
 
             st.subheader(
                 "🎬 Recorded Crowd Video"
@@ -1101,10 +1272,6 @@ else:
             st.video(
                 video_bytes
             )
-
-            # ------------------------------------------------
-            # DOWNLOAD
-            # ------------------------------------------------
 
             st.download_button(
                 label="📥 Download Live Crowd Video",
@@ -1131,6 +1298,8 @@ else:
             "Start the camera, keep it running, "
             "then click STOP."
         )
+
+
 # ============================================================
 # LIVE CAMERA STATUS
 # ============================================================
@@ -1162,11 +1331,15 @@ with s3:
 
     if gps_store["latitude"] is not None:
 
-        st.success("📍 GPS Active")
+        st.success(
+            "📍 GPS Active"
+        )
 
     else:
 
-        st.warning("📍 GPS Unavailable")
+        st.warning(
+            "📍 GPS Unavailable"
+        )
 
 
 if current_risk == "HIGH":
@@ -1188,11 +1361,6 @@ st.write(
     "GPS is independent from the camera. "
     "Click GET GPS LOCATION and allow browser location permission."
 )
-
-
-# IMPORTANT:
-# This is NOT inside an st.button().
-# get_geolocation creates its own browser-side control.
 
 gps_result = get_geolocation(
     "📍 GET GPS LOCATION"
@@ -1283,10 +1451,6 @@ if isinstance(gps_result, dict):
                     accuracy
                 )
 
-            # ------------------------------------------------
-            # Convert GPS coordinates to readable location
-            # ------------------------------------------------
-
             location_text = reverse_geocode(
                 lat,
                 lon,
@@ -1306,7 +1470,7 @@ if isinstance(gps_result, dict):
 
 
 # ============================================================
-# DISPLAY GPS AS TEXT LOCATION
+# DISPLAY GPS
 # ============================================================
 
 latitude = gps_store["latitude"]
@@ -1337,18 +1501,11 @@ if latitude is not None and longitude is not None:
             "📍 Location name is being determined..."
         )
 
-    # Coordinates are hidden from the main display.
-    # They are retained internally for email/map use.
-
     if accuracy is not None:
 
         st.caption(
             f"GPS accuracy: approximately ±{accuracy:.1f} m"
         )
-
-    # --------------------------------------------------------
-    # Map
-    # --------------------------------------------------------
 
     gps_map = folium.Map(
         location=[
@@ -1382,7 +1539,6 @@ else:
     )
 
 
-
 # ============================================================
 # IMAGE UPLOAD
 # ============================================================
@@ -1404,9 +1560,18 @@ uploaded_image = st.file_uploader(
 
 if uploaded_image is not None:
 
-    # =====================================================
-    # READ UPLOADED IMAGE
-    # =====================================================
+    # ========================================================
+    # UNIQUE IMAGE ID
+    # ========================================================
+
+    image_alert_id = (
+        f"{uploaded_image.name}_"
+        f"{uploaded_image.size}"
+    )
+
+    # ========================================================
+    # READ IMAGE
+    # ========================================================
 
     image_array = np.frombuffer(
         uploaded_image.getvalue(),
@@ -1419,150 +1584,142 @@ if uploaded_image is not None:
     )
 
     if upload_image is None:
-        st.error("❌ Unable to read image.")
-        st.stop()
-
-    # =====================================================
-    # IMAGE CROWD DETECTION
-    # =====================================================
-    results = model.predict(
-        source=upload_image,
-        classes=[0],
-        conf=0.15,
-        iou=0.50,
-        imgsz=960,
-        max_det=1000,
-        verbose=False
-    )
-
-    people_count = 0
-
-    # =====================================================
-    # DRAW DETECTIONS
-    # =====================================================
-
-    for result in results:
-
-        if result.boxes is None:
-            continue
-
-        for box in result.boxes:
-
-            # Class 0 = person
-            class_id = int(box.cls[0])
-
-            if class_id != 0:
-                continue
-
-            people_count += 1
-
-            # Bounding box coordinates
-            x1, y1, x2, y2 = map(
-                int,
-                box.xyxy[0].tolist()
-            )
-
-            # Confidence
-            confidence = float(box.conf[0])
-
-            # Draw bounding box
-            cv2.rectangle(
-                upload_image,
-                (x1, y1),
-                (x2, y2),
-                (0, 255, 0),
-                2
-            )
-
-            # Person label
-            label = f"Person {confidence:.2f}"
-
-            cv2.putText(
-                upload_image,
-                label,
-                (x1, max(y1 - 8, 20)),
-                cv2.FONT_HERSHEY_SIMPLEX,
-                0.5,
-                (0, 255, 0),
-                2
-            )
-
-    # =====================================================
-    # RISK ANALYSIS
-    # =====================================================
-
-    risk = get_risk(
-        people_count,
-        crowd_threshold
-    )
-
-    # =====================================================
-    # DISPLAY IMAGE
-    # =====================================================
-
-    st.subheader("📷 Image Crowd Analysis")
-
-    upload_rgb = cv2.cvtColor(
-        upload_image,
-        cv2.COLOR_BGR2RGB
-    )
-
-    st.image(
-        upload_rgb,
-        caption="Detected Crowd",
-        width=600
-    )
-
-    # =====================================================
-    # RESULTS
-    # =====================================================
-
-    u1, u2 = st.columns(2)
-
-    with u1:
-        st.metric(
-            "👥 People Detected",
-            people_count
-        )
-
-    with u2:
-        st.metric(
-            "⚠️ Crowd Risk",
-            risk
-        )
-
-    # =====================================================
-    # RISK MESSAGE
-    # =====================================================
-
-    if risk == "HIGH":
 
         st.error(
-            f"🚨 HIGH CROWD DETECTED! "
-            f"People: {people_count}"
-        )
-
-    elif risk == "MEDIUM":
-
-        st.warning(
-            f"⚠️ MEDIUM CROWD LEVEL. "
-            f"People: {people_count}"
+            "❌ Unable to read image."
         )
 
     else:
 
-        st.success(
-            f"✅ LOW CROWD LEVEL. "
-            f"People: {people_count}"
+        # ====================================================
+        # IMAGE CROWD DETECTION
+        # ====================================================
+
+        results = model.predict(
+            source=upload_image,
+            classes=[0],
+            conf=0.15,
+            iou=0.50,
+            imgsz=960,
+            max_det=1000,
+            verbose=False
         )
-        # ----------------------------------------------------
-        # IMAGE RISK MESSAGE + ALERT
-        # ----------------------------------------------------
+
+        people_count = 0
+
+        # ====================================================
+        # DRAW DETECTIONS
+        # ====================================================
+
+        for result in results:
+
+            if result.boxes is None:
+
+                continue
+
+            for box in result.boxes:
+
+                class_id = int(
+                    box.cls[0]
+                )
+
+                if class_id != 0:
+
+                    continue
+
+                people_count += 1
+
+                x1, y1, x2, y2 = map(
+                    int,
+                    box.xyxy[0].tolist()
+                )
+
+                confidence = float(
+                    box.conf[0]
+                )
+
+                cv2.rectangle(
+                    upload_image,
+                    (x1, y1),
+                    (x2, y2),
+                    (0, 255, 0),
+                    2
+                )
+
+                label = (
+                    f"Person {confidence:.2f}"
+                )
+
+                cv2.putText(
+                    upload_image,
+                    label,
+                    (
+                        x1,
+                        max(y1 - 8, 20)
+                    ),
+                    cv2.FONT_HERSHEY_SIMPLEX,
+                    0.5,
+                    (0, 255, 0),
+                    2
+                )
+
+        # ====================================================
+        # RISK ANALYSIS
+        # ====================================================
+
+        risk = get_risk(
+            people_count,
+            crowd_threshold
+        )
+
+        # ====================================================
+        # DISPLAY IMAGE
+        # ====================================================
+
+        st.subheader(
+            "📷 Image Crowd Analysis"
+        )
+
+        upload_rgb = cv2.cvtColor(
+            upload_image,
+            cv2.COLOR_BGR2RGB
+        )
+
+        st.image(
+            upload_rgb,
+            caption="Detected Crowd",
+            width=600
+        )
+
+        # ====================================================
+        # RESULTS
+        # ====================================================
+
+        u1, u2 = st.columns(2)
+
+        with u1:
+
+            st.metric(
+                "👥 People Detected",
+                people_count
+            )
+
+        with u2:
+
+            st.metric(
+                "⚠️ Crowd Risk",
+                risk
+            )
+
+        # ====================================================
+        # HIGH / MEDIUM / LOW
+        # ====================================================
 
         if risk == "HIGH":
 
             st.error(
-                "🚨 HIGH CROWD ALERT!"
+                f"🚨 HIGH CROWD DETECTED! "
+                f"People: {people_count}"
             )
 
             if location_text:
@@ -1577,29 +1734,61 @@ if uploaded_image is not None:
                     "📍 Alert Location: GPS unavailable"
                 )
 
-            threading.Thread(
-                target=send_crowd_alert,
-                kwargs={
-                    "people_count": people_count,
-                    "location_text": location_text,
-                    "latitude": latitude,
-                    "longitude": longitude,
-                    "source": "Uploaded Image",
-                },
-                daemon=True,
-            ).start()
+            # ------------------------------------------------
+            # SEND EMAIL
+            # ------------------------------------------------
+
+            if (
+                st.session_state.uploaded_image_alert_id
+                != image_alert_id
+            ):
+
+                alert_sent = (
+                    send_high_crowd_alert_once(
+                        people_count=people_count,
+                        source="Uploaded Image",
+                        alert_id=image_alert_id,
+                    )
+                )
+
+                if alert_sent:
+
+                    st.success(
+                        "📧 HIGH crowd alert email sent successfully."
+                    )
+
+                else:
+
+                    st.warning(
+                        "⚠️ HIGH crowd detected, "
+                        "but the email alert could not be sent."
+                    )
+
+                    st.info(
+                        "Please check your Gmail/Streamlit Secrets configuration."
+                    )
+
+            else:
+
+                st.info(
+                    "📧 Alert already sent for this uploaded image."
+                )
 
         elif risk == "MEDIUM":
 
             st.warning(
-                "⚠️ MEDIUM CROWD LEVEL."
+                f"⚠️ MEDIUM CROWD LEVEL. "
+                f"People: {people_count}"
             )
 
         else:
 
             st.success(
-                "✅ Crowd level is LOW."
+                f"✅ LOW CROWD LEVEL. "
+                f"People: {people_count}"
             )
+
+
 # ============================================================
 # VIDEO UPLOAD
 # ============================================================
@@ -1619,7 +1808,17 @@ uploaded_video = st.file_uploader(
     key="crowd_video_upload",
 )
 
+
 if uploaded_video is not None:
+
+    # ========================================================
+    # UNIQUE VIDEO ID
+    # ========================================================
+
+    video_alert_id = (
+        f"{uploaded_video.name}_"
+        f"{uploaded_video.size}"
+    )
 
     # ========================================================
     # SAVE UPLOADED VIDEO
@@ -1656,8 +1855,13 @@ if uploaded_video is not None:
         )
 
         try:
-            os.remove(input_path)
+
+            os.remove(
+                input_path
+            )
+
         except OSError:
+
             pass
 
     else:
@@ -1683,6 +1887,7 @@ if uploaded_video is not None:
         )
 
         if fps <= 0:
+
             fps = 25
 
         total_frames = int(
@@ -1699,10 +1904,8 @@ if uploaded_video is not None:
         VIDEO_IOU = 0.50
         VIDEO_IMAGE_SIZE = 640
 
-        # Process every 2nd frame for better speed
         FRAME_SKIP = 2
 
-        # Allow many people in dense crowds
         MAX_DETECTIONS = 1000
 
         # ====================================================
@@ -1742,7 +1945,9 @@ if uploaded_video is not None:
         # PROGRESS
         # ====================================================
 
-        progress = st.progress(0)
+        progress = st.progress(
+            0
+        )
 
         status = st.empty()
 
@@ -1755,6 +1960,7 @@ if uploaded_video is not None:
             ret, frame = cap.read()
 
             if not ret:
+
                 break
 
             # =================================================
@@ -1765,7 +1971,7 @@ if uploaded_video is not None:
 
                 results = model.predict(
                     source=frame,
-                    classes=[0],          # Person only
+                    classes=[0],
                     conf=VIDEO_CONFIDENCE,
                     iou=VIDEO_IOU,
                     imgsz=VIDEO_IMAGE_SIZE,
@@ -1782,6 +1988,7 @@ if uploaded_video is not None:
                 for result in results:
 
                     if result.boxes is None:
+
                         continue
 
                     for box in result.boxes:
@@ -1790,8 +1997,8 @@ if uploaded_video is not None:
                             box.cls[0]
                         )
 
-                        # Person class
                         if class_id != 0:
+
                             continue
 
                         people_count += 1
@@ -1805,10 +2012,6 @@ if uploaded_video is not None:
                             box.conf[0]
                         )
 
-                        # =====================================
-                        # BOUNDING BOX
-                        # =====================================
-
                         cv2.rectangle(
                             frame,
                             (x1, y1),
@@ -1816,10 +2019,6 @@ if uploaded_video is not None:
                             (0, 255, 0),
                             2,
                         )
-
-                        # =====================================
-                        # PERSON LABEL
-                        # =====================================
 
                         cv2.putText(
                             frame,
@@ -1834,13 +2033,15 @@ if uploaded_video is not None:
                             2,
                         )
 
-                # Save current detection
-                last_people_count = people_count
+                last_people_count = (
+                    people_count
+                )
 
             else:
 
-                # Reuse previous detection
-                people_count = last_people_count
+                people_count = (
+                    last_people_count
+                )
 
             # =================================================
             # MAXIMUM PEOPLE
@@ -1917,7 +2118,7 @@ if uploaded_video is not None:
             )
 
             # =================================================
-            # HIGH CROWD ALERT
+            # HIGH CROWD ALERT ON VIDEO
             # =================================================
 
             if risk == "HIGH":
@@ -1936,7 +2137,9 @@ if uploaded_video is not None:
             # WRITE OUTPUT FRAME
             # =================================================
 
-            out.write(frame)
+            out.write(
+                frame
+            )
 
             # =================================================
             # SAVE DATA
@@ -2010,7 +2213,9 @@ if uploaded_video is not None:
             "rb",
         ) as video_file:
 
-            processed_video = video_file.read()
+            processed_video = (
+                video_file.read()
+            )
 
         st.video(
             processed_video
@@ -2073,6 +2278,46 @@ if uploaded_video is not None:
                     "📍 Alert Location: GPS unavailable"
                 )
 
+            # ------------------------------------------------
+            # SEND VIDEO ALERT
+            # ------------------------------------------------
+
+            if (
+                st.session_state.uploaded_video_alert_id
+                != video_alert_id
+            ):
+
+                alert_sent = (
+                    send_high_crowd_alert_once(
+                        people_count=max_people,
+                        source="Uploaded Video",
+                        alert_id=video_alert_id,
+                    )
+                )
+
+                if alert_sent:
+
+                    st.success(
+                        "📧 HIGH crowd alert email sent successfully."
+                    )
+
+                else:
+
+                    st.warning(
+                        "⚠️ HIGH crowd detected, "
+                        "but the email alert could not be sent."
+                    )
+
+                    st.info(
+                        "Please check your Gmail/Streamlit Secrets configuration."
+                    )
+
+            else:
+
+                st.info(
+                    "📧 Alert already sent for this uploaded video."
+                )
+
         elif final_risk == "MEDIUM":
 
             st.warning(
@@ -2090,83 +2335,6 @@ if uploaded_video is not None:
         # ====================================================
         # CROWD GRAPH
         # ====================================================
-
-        st.subheader(
-            "📈 Crowd Count Over Time"
-        )
-
-        graph_df = pd.DataFrame({
-
-            "Time (seconds)": time_data,
-
-            "People": people_data,
-
-        })
-
-        st.line_chart(
-            graph_df,
-            x="Time (seconds)",
-            y="People",
-        )
-
-        # ====================================================
-        # DOWNLOAD PROCESSED VIDEO
-        # ====================================================
-
-        with open(
-            output_path,
-            "rb",
-        ) as video:
-
-            st.download_button(
-                label="📥 Download Processed Video",
-                data=video,
-                file_name="crowd_analysis_output.mp4",
-                mime="video/mp4",
-            )
-
-        # ====================================================
-        # CROWD REPORT CSV
-        # ====================================================
-
-        csv_df = pd.DataFrame({
-
-            "Time (seconds)": time_data,
-
-            "People Detected": people_data,
-
-        })
-
-        csv_data = csv_df.to_csv(
-            index=False
-        )
-
-        st.download_button(
-            label="📄 Download Crowd Report",
-            data=csv_data,
-            file_name="crowd_analysis_report.csv",
-            mime="text/csv",
-        )
-
-        # ====================================================
-        # CLEANUP
-        # ====================================================
-
-        try:
-
-            os.remove(
-                input_path
-            )
-
-            # Do NOT remove output_path here.
-            # Streamlit still needs it for downloads.
-
-        except OSError:
-
-            pass
-        # ----------------------------------------------------
-        # Graph
-        # ----------------------------------------------------
 
         if time_data:
 
@@ -2187,21 +2355,21 @@ if uploaded_video is not None:
                 y="People",
             )
 
-        # ----------------------------------------------------
-        # Download video
-        # ----------------------------------------------------
+        # ====================================================
+        # DOWNLOAD PROCESSED VIDEO
+        # ====================================================
 
         st.download_button(
-            "📥 Download Processed Video",
+            label="📥 Download Processed Video",
             data=processed_video,
             file_name="crowd_analysis_output.mp4",
             mime="video/mp4",
             key="download_uploaded_processed_video",
         )
 
-        # ----------------------------------------------------
-        # CSV report
-        # ----------------------------------------------------
+        # ====================================================
+        # CSV REPORT
+        # ====================================================
 
         csv_df = pd.DataFrame(
             {
@@ -2211,7 +2379,7 @@ if uploaded_video is not None:
         )
 
         st.download_button(
-            "📄 Download Crowd Report",
+            label="📄 Download Crowd Report",
             data=csv_df.to_csv(
                 index=False
             ),
@@ -2220,12 +2388,18 @@ if uploaded_video is not None:
             key="download_uploaded_crowd_report",
         )
 
+        # ====================================================
+        # CLEANUP INPUT
+        # ====================================================
+
         try:
 
-            os.remove(input_path)
-            os.remove(output_path)
+            os.remove(
+                input_path
+            )
 
         except OSError:
+
             pass
 
 
