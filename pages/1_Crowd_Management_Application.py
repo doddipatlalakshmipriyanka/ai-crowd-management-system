@@ -710,7 +710,7 @@ st.write(
     "or recording live video."
 )
 
-camera_left, camera_center, camera_right = st.columns([1, 2, 1])
+camera_left, camera_center, camera_right = st.columns([0.3, 3.4, 0.3])
 
 with camera_center:
     try:
