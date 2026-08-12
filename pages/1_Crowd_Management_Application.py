@@ -539,14 +539,16 @@ def reverse_geocode(latitude, longitude):
         return None
 
     try:
+
         url = "https://nominatim.openstreetmap.org/reverse"
 
         params = {
             "lat": latitude,
             "lon": longitude,
-            "format": "jsonv2",
+            "format": "json",
             "zoom": 18,
             "addressdetails": 1,
+            "accept-language": "en",
         }
 
         headers = {
@@ -557,40 +559,46 @@ def reverse_geocode(latitude, longitude):
             url,
             params=params,
             headers=headers,
-            timeout=10,
+            timeout=15,
         )
 
-        if response.status_code != 200:
-            return None
+        response.raise_for_status()
 
         data = response.json()
 
         address = data.get("address", {})
 
-        # Get useful location components
+        # Get location parts
+        house = address.get("house_number")
+        road = address.get("road")
         area = (
-            address.get("village")
+            address.get("suburb")
+            or address.get("neighbourhood")
+            or address.get("village")
             or address.get("town")
-            or address.get("city")
-            or address.get("municipality")
         )
 
-        district = (
-            address.get("county")
-            or address.get("state_district")
+        city = (
+            address.get("city")
+            or address.get("municipality")
+            or address.get("district")
         )
 
         state = address.get("state")
         country = address.get("country")
 
+        # Build readable text
         parts = []
 
         for value in [
+            house,
+            road,
             area,
-            district,
+            city,
             state,
             country,
         ]:
+
             if value and value not in parts:
                 parts.append(value)
 
@@ -604,8 +612,6 @@ def reverse_geocode(latitude, longitude):
         print("Reverse geocoding error:", e)
 
         return None
-
-
 # ============================================================
 # CAMERA FRAME CALLBACK
 # ============================================================
@@ -1441,17 +1447,11 @@ if isinstance(gps_result, dict):
             )
 
             if location_text:
-
-                gps_store["location_text"] = (
-                    location_text
-                )
-
+                gps_store["location_text"] = location_text
             else:
-
                 gps_store["location_text"] = (
-                    f"GPS coordinates: {lat:.6f}, {lon:.6f}"
+                    "Location name could not be determined"
                 )
-
 # ============================================================
 # DISPLAY GPS
 # ============================================================
