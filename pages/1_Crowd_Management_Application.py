@@ -35,7 +35,7 @@ st.markdown("""
 <style>
     /* Reduce the overall application width */
     .block-container {
-        max-width: 1200px;
+        max-width: 1000px;
         margin: auto;
         padding-top: 2rem;
         padding-left: 2rem;
