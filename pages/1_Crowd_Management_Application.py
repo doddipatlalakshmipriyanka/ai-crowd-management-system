@@ -1116,10 +1116,7 @@ if isinstance(gps_result, dict):
 
 
 # ============================================================
-# DISPLAY GPS
-# ============================================================
-# ============================================================
-# DISPLAY GPS
+# DISPLAY GPS LOCATION AS TEXT ONLY
 # ============================================================
 
 latitude = gps_store.get("latitude")
@@ -1129,11 +1126,10 @@ location_text = gps_store.get("location_text")
 
 if latitude is not None and longitude is not None:
 
-    st.success("📍 GPS location detected successfully.")
-
-    # Try reverse geocoding again if address is missing
+    # If address is not available, try reverse geocoding again
     if not location_text or location_text == "Location name could not be determined":
-        with st.spinner("🔍 Finding exact address..."):
+
+        with st.spinner("🔍 Finding your location..."):
             location_text = reverse_geocode(
                 latitude,
                 longitude
@@ -1142,29 +1138,23 @@ if latitude is not None and longitude is not None:
             if location_text:
                 gps_store["location_text"] = location_text
 
-    # --------------------------------------------------------
-    # TEXT LOCATION
-    # --------------------------------------------------------
-
     st.markdown("### 📍 Current Location")
 
     if location_text:
 
-        st.success(
-            f"📍 **{location_text}**"
-        )
+        st.success("📍 Location detected successfully!")
 
         st.markdown(
             f"""
             <div style="
-                padding: 18px;
+                padding: 20px;
                 border-radius: 12px;
                 border: 2px solid #4CAF50;
                 background-color: #f5fff5;
-                font-size: 18px;
-                line-height: 1.6;
+                font-size: 20px;
+                line-height: 1.7;
             ">
-                <b>📍 Exact Location</b><br><br>
+                📍 <b>Location:</b><br>
                 {location_text}
             </div>
             """,
@@ -1174,43 +1164,11 @@ if latitude is not None and longitude is not None:
     else:
 
         st.warning(
-            "⚠️ Address could not be retrieved automatically."
+            "⚠️ Unable to find the readable address. "
+            "Please click GET GPS LOCATION again."
         )
 
-        st.info(
-            "The GPS coordinates were detected, but the "
-            "address service did not return a readable address."
-        )
-
-    # --------------------------------------------------------
-    # GPS COORDINATES
-    # --------------------------------------------------------
-
-    st.markdown("### 📌 Exact GPS Coordinates")
-
-    col1, col2 = st.columns(2)
-
-    with col1:
-        st.metric(
-            "Latitude",
-            f"{latitude:.8f}"
-        )
-
-    with col2:
-        st.metric(
-            "Longitude",
-            f"{longitude:.8f}"
-        )
-
-    if accuracy is not None:
-        st.caption(
-            f"📡 GPS accuracy: approximately ±{accuracy:.1f} meters"
-        )
-
-    # --------------------------------------------------------
-    # MAP
-    # --------------------------------------------------------
-
+    # Optional map — NO coordinates shown as text
     st.markdown("### 🗺️ Location on Map")
 
     gps_map = folium.Map(
@@ -1220,14 +1178,8 @@ if latitude is not None and longitude is not None:
 
     folium.Marker(
         [latitude, longitude],
-        popup=location_text or "Current GPS Location",
-        tooltip="📍 Exact Crowd Monitoring Location",
-    ).add_to(gps_map)
-
-    folium.Circle(
-        [latitude, longitude],
-        radius=accuracy if accuracy else 30,
-        popup="GPS accuracy area",
+        popup=location_text or "Current Location",
+        tooltip="📍 Current Location",
     ).add_to(gps_map)
 
     st_folium(
@@ -1240,8 +1192,8 @@ if latitude is not None and longitude is not None:
 else:
 
     st.info(
-        "📍 GPS location has not been detected yet. "
-        "Click **GET GPS LOCATION** and allow browser location permission."
+        "📍 Location has not been detected yet. "
+        "Click **GET GPS LOCATION** and allow location permission."
     )
 # ============================================================
 # IMAGE UPLOAD
