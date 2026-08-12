@@ -996,12 +996,18 @@ if current_risk == "HIGH":
 # GPS LOCATION
 # ============================================================
 st.markdown("---")
+
 st.subheader("📍 GPS Location")
 
 st.write(
     "GPS is independent from the camera. "
     "Click GET GPS LOCATION and allow browser location permission."
 )
+
+
+# IMPORTANT:
+# This is NOT inside an st.button().
+# get_geolocation creates its own browser-side control.
 
 gps_result = get_geolocation(
     "📍 GET GPS LOCATION"
