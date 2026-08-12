@@ -450,8 +450,6 @@ def send_high_crowd_alert_once(
 # ============================================================
 # REVERSE GEOCODING
 # Converts latitude/longitude into readable location text
-# Example:
-# "Ramachandrapuram, East Godavari, Andhra Pradesh, 533255, India"
 # ============================================================
 
 def reverse_geocode(latitude, longitude):
@@ -460,7 +458,6 @@ def reverse_geocode(latitude, longitude):
         return None
 
     try:
-        # IMPORTANT: This must be a normal URL, NOT a Markdown link
         url = "https://nominatim.openstreetmap.org/reverse"
 
         params = {
@@ -484,16 +481,15 @@ def reverse_geocode(latitude, longitude):
         )
 
         if response.status_code != 200:
-            print("Reverse geocoding HTTP error:", response.status_code)
+            print(
+                "Reverse geocoding HTTP error:",
+                response.status_code
+            )
             return None
 
         data = response.json()
 
         address = data.get("address", {})
-
-        # ----------------------------------------------------
-        # Get individual address components
-        # ----------------------------------------------------
 
         place_name = (
             address.get("amenity")
@@ -519,10 +515,6 @@ def reverse_geocode(latitude, longitude):
         postcode = address.get("postcode")
         country = address.get("country")
 
-        # ----------------------------------------------------
-        # Create clean readable location
-        # ----------------------------------------------------
-
         parts = []
 
         for value in [
@@ -539,7 +531,6 @@ def reverse_geocode(latitude, longitude):
         if parts:
             return ", ".join(parts)
 
-        # Final fallback
         display_name = data.get("display_name")
 
         if display_name:
