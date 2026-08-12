@@ -1465,9 +1465,8 @@ if isinstance(gps_result, dict):
             else:
 
                 gps_store["location_text"] = (
-                    "Location name could not be determined"
+                    f"GPS coordinates: {lat:.6f}, {lon:.6f}"
                 )
-
 
 # ============================================================
 # DISPLAY GPS
