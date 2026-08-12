@@ -455,6 +455,8 @@ def send_high_crowd_alert_once(
 # ============================================================
 
 def reverse_geocode(latitude, longitude):
+    """Convert GPS coordinates into a readable location name."""
+
     if latitude is None or longitude is None:
         return None
 
@@ -467,6 +469,7 @@ def reverse_geocode(latitude, longitude):
             "format": "jsonv2",
             "zoom": 18,
             "addressdetails": 1,
+            "accept-language": "en",
         }
 
         headers = {
@@ -477,42 +480,90 @@ def reverse_geocode(latitude, longitude):
             url,
             params=params,
             headers=headers,
-            timeout=10,
+            timeout=15,
         )
 
         if response.status_code != 200:
+            print("Nominatim error:", response.status_code)
             return None
 
         data = response.json()
 
+        address = data.get("address", {})
+
+        # Get the most useful address components
+        house_number = address.get("house_number")
+        road = address.get("road")
+
+        neighbourhood = (
+            address.get("neighbourhood")
+            or address.get("suburb")
+            or address.get("village")
+        )
+
+        city = (
+            address.get("city")
+            or address.get("town")
+            or address.get("municipality")
+            or address.get("village")
+        )
+
+        district = (
+            address.get("county")
+            or address.get("state_district")
+        )
+
+        state = address.get("state")
+        postcode = address.get("postcode")
+        country = address.get("country")
+
+        parts = []
+
+        if house_number and road:
+            parts.append(f"{house_number}, {road}")
+        elif road:
+            parts.append(road)
+
+        if neighbourhood and neighbourhood not in parts:
+            parts.append(neighbourhood)
+
+        if city and city not in parts:
+            parts.append(city)
+
+        if district and district not in parts:
+            parts.append(district)
+
+        if state and state not in parts:
+            parts.append(state)
+
+        if postcode:
+            parts.append(postcode)
+
+        if country:
+            parts.append(country)
+
+        if parts:
+            return ", ".join(parts)
+
+        # Fallback to Nominatim's complete display name
         display_name = data.get("display_name")
+
         if display_name:
             return display_name
 
-        address = data.get("address", {})
-        parts = []
+        return None
 
-        for key in [
-            "amenity",
-            "building",
-            "road",
-            "suburb",
-            "town",
-            "city",
-            "state",
-            "postcode",
-            "country",
-        ]:
-            value = address.get(key)
-            if value and value not in parts:
-                parts.append(value)
+    except requests.exceptions.Timeout:
+        print("Nominatim request timed out.")
+        return None
 
-        return ", ".join(parts) if parts else None
+    except requests.exceptions.RequestException as exc:
+        print("Location request error:", exc)
+        return None
 
     except Exception as exc:
         print("Reverse geocoding error:", exc)
         return None
-
 
 # ============================================================
 # CAMERA FRAME CALLBACK
@@ -1074,10 +1125,30 @@ if latitude is not None and longitude is not None:
 
     st.markdown("### 📍 Current Location")
 
-    if location_text:
-        st.info(f"📍 **{location_text}**")
-    else:
-        st.info("📍 Location name is being determined...")
+   if location_text:
+    st.success("📍 Current Location")
+
+    st.markdown(
+        f"""
+        <div style="
+            padding: 15px;
+            border-radius: 10px;
+            border: 1px solid #ddd;
+            background-color: #f8f9fa;
+            font-size: 18px;
+        ">
+            📍 <b>Location:</b><br>
+            {location_text}
+        </div>
+        """,
+        unsafe_allow_html=True,
+    )
+
+else:
+    st.warning(
+        f"📍 Address unavailable. "
+        f"Coordinates: {latitude:.6f}, {longitude:.6f}"
+    )
 
     if accuracy is not None:
         st.caption(
