@@ -460,15 +460,15 @@ def reverse_geocode(latitude, longitude):
         return None
 
     try:
-
         url = "https://nominatim.openstreetmap.org/reverse"
 
         params = {
             "lat": latitude,
             "lon": longitude,
-            "format": "jsonv2",
+            "format": "json",
             "zoom": 18,
             "addressdetails": 1,
+            "accept-language": "en",
         }
 
         headers = {
@@ -479,7 +479,7 @@ def reverse_geocode(latitude, longitude):
             url,
             params=params,
             headers=headers,
-            timeout=10,
+            timeout=15,
         )
 
         if response.status_code != 200:
@@ -487,11 +487,13 @@ def reverse_geocode(latitude, longitude):
 
         data = response.json()
 
+        # Get readable location name
         display_name = data.get("display_name")
 
         if display_name:
             return display_name
 
+        # Fallback
         address = data.get("address", {})
 
         parts = []
@@ -500,14 +502,16 @@ def reverse_geocode(latitude, longitude):
             "amenity",
             "building",
             "road",
+            "neighbourhood",
             "suburb",
+            "village",
             "town",
             "city",
+            "district",
             "state",
             "postcode",
             "country",
         ]:
-
             value = address.get(key)
 
             if value and value not in parts:
@@ -517,7 +521,6 @@ def reverse_geocode(latitude, longitude):
             return ", ".join(parts)
 
     except Exception as e:
-
         print("Reverse geocoding error:", e)
 
     return None
