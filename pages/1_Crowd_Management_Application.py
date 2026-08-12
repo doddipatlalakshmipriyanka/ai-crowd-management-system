@@ -1022,7 +1022,6 @@ if current_risk == "HIGH":
 # ============================================================
 # GPS LOCATION
 # ============================================================
-
 st.markdown("---")
 st.subheader("📍 GPS Location")
 
@@ -1031,9 +1030,9 @@ st.write(
     "Click GET GPS LOCATION and allow browser location permission."
 )
 
-gps_result = get_geolocation("📍 GET GPS LOCATION")
-
-
+gps_result = get_geolocation(
+    "📍 GET GPS LOCATION"
+)
 # ============================================================
 # PROCESS GPS RESULT
 # ============================================================
@@ -1097,13 +1096,24 @@ if isinstance(gps_result, dict):
 # ============================================================
 # DISPLAY GPS
 # ============================================================
+
+latitude = gps_store.get("latitude")
+longitude = gps_store.get("longitude")
+accuracy = gps_store.get("accuracy")
+location_text = gps_store.get("location_text")
+
 if latitude is not None and longitude is not None:
 
     st.success("📍 GPS location detected successfully.")
 
     st.markdown("### 📍 Current Location")
 
+    # --------------------------------------------------------
+    # READABLE ADDRESS WITH PIN CODE
+    # --------------------------------------------------------
+
     if location_text:
+
         st.markdown(
             f"""
             <div style="
@@ -1121,26 +1131,45 @@ if latitude is not None and longitude is not None:
             unsafe_allow_html=True,
         )
 
-    st.markdown("### 📌 GPS Coordinates")
+    else:
 
-    c1, c2 = st.columns(2)
+        st.warning(
+            "⚠️ Address could not be determined."
+        )
 
-    with c1:
+    # --------------------------------------------------------
+    # EXACT GPS COORDINATES
+    # --------------------------------------------------------
+
+    st.markdown("### 📌 Exact GPS Coordinates")
+
+    col1, col2 = st.columns(2)
+
+    with col1:
         st.metric(
             "Latitude",
             f"{latitude:.8f}"
         )
 
-    with c2:
+    with col2:
         st.metric(
             "Longitude",
             f"{longitude:.8f}"
         )
 
+    # --------------------------------------------------------
+    # GPS ACCURACY
+    # --------------------------------------------------------
+
     if accuracy is not None:
+
         st.caption(
             f"🎯 GPS accuracy: approximately ±{accuracy:.1f} meters"
         )
+
+    # --------------------------------------------------------
+    # MAP
+    # --------------------------------------------------------
 
     st.markdown("### 🗺️ Exact Position on Map")
 
@@ -1151,11 +1180,8 @@ if latitude is not None and longitude is not None:
 
     folium.Marker(
         [latitude, longitude],
-        popup=(
-            f"{location_text or 'Current Location'}<br>"
-            f"PIN: {address.get('postcode', 'Unavailable')}"
-        ),
-        tooltip="📍 Crowd Monitoring Location",
+        popup=location_text or "Current GPS Location",
+        tooltip="📍 Exact Crowd Monitoring Location",
     ).add_to(gps_map)
 
     st_folium(
@@ -1169,7 +1195,7 @@ else:
 
     st.info(
         "📍 GPS location has not been detected yet. "
-        "Click GET GPS LOCATION and allow browser permission."
+        "Click GET GPS LOCATION and allow browser location permission."
     )
 # ============================================================
 # IMAGE UPLOAD
