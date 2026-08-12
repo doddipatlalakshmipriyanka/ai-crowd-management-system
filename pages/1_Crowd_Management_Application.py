@@ -1020,59 +1020,106 @@ gps_result = get_geolocation(
 # ============================================================
 
 if isinstance(gps_result, dict):
+
     if "error" in gps_result:
-        error_info = gps_result.get("error")
+
+        error_info = gps_result.get(
+            "error"
+        )
 
         if isinstance(error_info, dict):
-            error_code = error_info.get("code")
+
+            error_code = error_info.get(
+                "code"
+            )
+
             error_message = error_info.get(
                 "message",
                 "Unknown GPS error",
             )
 
             if error_code == 1:
+
                 st.error(
                     "❌ Browser location permission was denied."
                 )
+
             elif error_code == 2:
+
                 st.warning(
                     "⚠️ Location is temporarily unavailable."
                 )
+
             elif error_code == 3:
+
                 st.warning(
                     "⚠️ GPS request timed out. "
                     "Click GET GPS LOCATION again."
                 )
+
             else:
+
                 st.warning(
                     f"⚠️ GPS error: {error_message}"
                 )
+
         else:
-            st.warning(f"⚠️ GPS error: {error_info}")
+
+            st.warning(
+                f"⚠️ GPS error: {error_info}"
+            )
 
     elif gps_result.get("coords"):
+
         coords = gps_result["coords"]
 
-        lat = coords.get("latitude")
-        lon = coords.get("longitude")
-        accuracy_value = coords.get("accuracy")
+        lat = coords.get(
+            "latitude"
+        )
+
+        lon = coords.get(
+            "longitude"
+        )
+
+        accuracy = coords.get(
+            "accuracy"
+        )
 
         if lat is not None and lon is not None:
+
             lat = float(lat)
             lon = float(lon)
 
             gps_store["latitude"] = lat
             gps_store["longitude"] = lon
 
-            if accuracy_value is not None:
-                gps_store["accuracy"] = float(accuracy_value)
+            if accuracy is not None:
 
-            location_text_value = reverse_geocode(lat, lon)
+                gps_store["accuracy"] = float(
+                    accuracy
+                )
 
-if location_text_value:
-    gps_store["location_text"] = location_text_value
-else:
-    gps_store["location_text"] = None
+            # ------------------------------------------------
+            # Convert GPS coordinates to readable location
+            # ------------------------------------------------
+
+            location_text = reverse_geocode(
+                lat,
+                lon,
+            )
+
+            if location_text:
+
+                gps_store["location_text"] = (
+                    location_text
+                )
+
+            else:
+                gps_store["location_text"] = (
+                    f"Latitude: {lat:.6f}, Longitude: {lon:.6f}"
+                )
+
+
 # ============================================================
 # DISPLAY GPS LOCATION AS TEXT ONLY
 # ============================================================
