@@ -447,10 +447,12 @@ def send_high_crowd_alert_once(
         longitude=longitude,
         source=source,
     )
-
+# ============================================================
+# REVERSE GEOCODING
+# ============================================================
 
 def reverse_geocode(latitude, longitude):
-    """Convert GPS coordinates into a detailed address with PIN code."""
+    """Convert GPS coordinates into a readable address with PIN code."""
 
     if latitude is None or longitude is None:
         return None
@@ -459,8 +461,8 @@ def reverse_geocode(latitude, longitude):
         url = "https://nominatim.openstreetmap.org/reverse"
 
         params = {
-            "lat": latitude,
-            "lon": longitude,
+            "lat": float(latitude),
+            "lon": float(longitude),
             "format": "jsonv2",
             "zoom": 18,
             "addressdetails": 1,
@@ -478,72 +480,92 @@ def reverse_geocode(latitude, longitude):
             timeout=20,
         )
 
-        if response.status_code != 200:
-            return None
+        response.raise_for_status()
 
         data = response.json()
         address = data.get("address", {})
 
-        parts = []
+        # Address components
+        house_number = address.get("house_number")
+        road = address.get("road")
 
-        # House number
-        if address.get("house_number"):
-            parts.append(address["house_number"])
-
-        # Street / Road
-        if address.get("road"):
-            parts.append(address["road"])
-
-        # Local area
-        area = (
+        neighbourhood = (
             address.get("neighbourhood")
             or address.get("suburb")
-            or address.get("quarter")
-            or address.get("residential")
+            or address.get("locality")
         )
 
-        if area:
-            parts.append(area)
+        village = address.get("village")
+        town = address.get("town")
+        city = address.get("city")
+        municipality = address.get("municipality")
 
-        # City / Town / Village
-        city = (
-            address.get("city")
-            or address.get("town")
-            or address.get("village")
-            or address.get("municipality")
+        district = (
+            address.get("state_district")
+            or address.get("county")
         )
 
-        if city:
-            parts.append(city)
+        state = address.get("state")
+        postcode = address.get("postcode")
+        country = address.get("country")
+
+        parts = []
+
+        # House + road
+        if house_number and road:
+            parts.append(f"{house_number}, {road}")
+        elif road:
+            parts.append(road)
+
+        # Local area
+        if neighbourhood:
+            parts.append(neighbourhood)
+
+        # City / town / village
+        place = (
+            city
+            or town
+            or village
+            or municipality
+        )
+
+        if place and place not in parts:
+            parts.append(place)
 
         # District
-        district = (
-            address.get("district")
-            or address.get("county")
-            or address.get("state_district")
-        )
-
         if district and district not in parts:
             parts.append(district)
 
         # State
-        if address.get("state"):
-            parts.append(address["state"])
+        if state and state not in parts:
+            parts.append(state)
 
-        # ⭐ PIN CODE
-        pincode = address.get("postcode")
-
-        if pincode:
-            parts.append(f"PIN - {pincode}")
+        # PIN code
+        if postcode:
+            parts.append(f"PIN - {postcode}")
 
         # Country
-        if address.get("country"):
-            parts.append(address["country"])
+        if country:
+            parts.append(country)
 
         if parts:
-            return ", ".join(dict.fromkeys(parts))
+            return ", ".join(parts)
 
-        return data.get("display_name")
+        # Final fallback
+        display_name = data.get("display_name")
+
+        if display_name:
+            return display_name
+
+        return None
+
+    except requests.exceptions.Timeout:
+        print("Reverse geocoding timed out.")
+        return None
+
+    except requests.exceptions.RequestException as exc:
+        print("Reverse geocoding request error:", exc)
+        return None
 
     except Exception as exc:
         print("Reverse geocoding error:", exc)
@@ -1096,6 +1118,9 @@ if isinstance(gps_result, dict):
 # ============================================================
 # DISPLAY GPS
 # ============================================================
+# ============================================================
+# DISPLAY GPS
+# ============================================================
 
 latitude = gps_store.get("latitude")
 longitude = gps_store.get("longitude")
@@ -1106,25 +1131,40 @@ if latitude is not None and longitude is not None:
 
     st.success("📍 GPS location detected successfully.")
 
+    # Try reverse geocoding again if address is missing
+    if not location_text or location_text == "Location name could not be determined":
+        with st.spinner("🔍 Finding exact address..."):
+            location_text = reverse_geocode(
+                latitude,
+                longitude
+            )
+
+            if location_text:
+                gps_store["location_text"] = location_text
+
+    # --------------------------------------------------------
+    # TEXT LOCATION
+    # --------------------------------------------------------
+
     st.markdown("### 📍 Current Location")
 
-    # --------------------------------------------------------
-    # READABLE ADDRESS WITH PIN CODE
-    # --------------------------------------------------------
-
     if location_text:
+
+        st.success(
+            f"📍 **{location_text}**"
+        )
 
         st.markdown(
             f"""
             <div style="
                 padding: 18px;
                 border-radius: 12px;
-                border: 1px solid #cccccc;
-                background-color: #f8f9fa;
+                border: 2px solid #4CAF50;
+                background-color: #f5fff5;
                 font-size: 18px;
-                line-height: 1.7;
+                line-height: 1.6;
             ">
-                📍 <b>Location:</b><br>
+                <b>📍 Exact Location</b><br><br>
                 {location_text}
             </div>
             """,
@@ -1134,11 +1174,16 @@ if latitude is not None and longitude is not None:
     else:
 
         st.warning(
-            "⚠️ Address could not be determined."
+            "⚠️ Address could not be retrieved automatically."
+        )
+
+        st.info(
+            "The GPS coordinates were detected, but the "
+            "address service did not return a readable address."
         )
 
     # --------------------------------------------------------
-    # EXACT GPS COORDINATES
+    # GPS COORDINATES
     # --------------------------------------------------------
 
     st.markdown("### 📌 Exact GPS Coordinates")
@@ -1157,25 +1202,20 @@ if latitude is not None and longitude is not None:
             f"{longitude:.8f}"
         )
 
-    # --------------------------------------------------------
-    # GPS ACCURACY
-    # --------------------------------------------------------
-
     if accuracy is not None:
-
         st.caption(
-            f"🎯 GPS accuracy: approximately ±{accuracy:.1f} meters"
+            f"📡 GPS accuracy: approximately ±{accuracy:.1f} meters"
         )
 
     # --------------------------------------------------------
     # MAP
     # --------------------------------------------------------
 
-    st.markdown("### 🗺️ Exact Position on Map")
+    st.markdown("### 🗺️ Location on Map")
 
     gps_map = folium.Map(
         location=[latitude, longitude],
-        zoom_start=18,
+        zoom_start=17,
     )
 
     folium.Marker(
@@ -1184,10 +1224,16 @@ if latitude is not None and longitude is not None:
         tooltip="📍 Exact Crowd Monitoring Location",
     ).add_to(gps_map)
 
+    folium.Circle(
+        [latitude, longitude],
+        radius=accuracy if accuracy else 30,
+        popup="GPS accuracy area",
+    ).add_to(gps_map)
+
     st_folium(
         gps_map,
         width=700,
-        height=450,
+        height=400,
         key="current_gps_map",
     )
 
@@ -1195,7 +1241,7 @@ else:
 
     st.info(
         "📍 GPS location has not been detected yet. "
-        "Click GET GPS LOCATION and allow browser location permission."
+        "Click **GET GPS LOCATION** and allow browser location permission."
     )
 # ============================================================
 # IMAGE UPLOAD
