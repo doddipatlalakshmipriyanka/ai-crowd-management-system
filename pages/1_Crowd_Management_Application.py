@@ -21,7 +21,6 @@ from aiortc.contrib.media import MediaRecorder
 from streamlit_folium import st_folium
 from streamlit_js_eval import get_geolocation
 
-
 # ============================================================
 # PAGE CONFIG
 # ============================================================
@@ -1121,40 +1120,45 @@ accuracy = gps_store["accuracy"]
 location_text = gps_store["location_text"]
 
 if latitude is not None and longitude is not None:
+
     st.success("📍 GPS location detected successfully.")
 
     st.markdown("### 📍 Current Location")
 
-   if location_text:
-    st.success("📍 Current Location")
+    if location_text:
+        st.success("📍 Current Location")
 
-    st.markdown(
-        f"""
-        <div style="
-            padding: 15px;
-            border-radius: 10px;
-            border: 1px solid #ddd;
-            background-color: #f8f9fa;
-            font-size: 18px;
-        ">
-            📍 <b>Location:</b><br>
-            {location_text}
-        </div>
-        """,
-        unsafe_allow_html=True,
-    )
+        st.markdown(
+            f"""
+            <div style="
+                padding: 15px;
+                border-radius: 10px;
+                border: 1px solid #ddd;
+                background-color: #f8f9fa;
+                font-size: 18px;
+            ">
+                📍 <b>Location:</b><br>
+                {location_text}
+            </div>
+            """,
+            unsafe_allow_html=True,
+        )
 
-else:
-    st.warning(
-        f"📍 Address unavailable. "
-        f"Coordinates: {latitude:.6f}, {longitude:.6f}"
-    )
+    else:
+        st.warning(
+            "📍 Address could not be determined."
+        )
+
+        st.info(
+            f"📍 Coordinates: {latitude:.6f}, {longitude:.6f}"
+        )
 
     if accuracy is not None:
         st.caption(
             f"GPS accuracy: approximately ±{accuracy:.1f} m"
         )
 
+    # Map
     gps_map = folium.Map(
         location=[latitude, longitude],
         zoom_start=16,
@@ -1172,13 +1176,12 @@ else:
         height=350,
         key="current_gps_map",
     )
+
 else:
     st.info(
         "📍 GPS location has not been detected yet. "
         "Click GET GPS LOCATION and allow browser location permission."
     )
-
-
 # ============================================================
 # IMAGE UPLOAD
 # ============================================================
