@@ -451,7 +451,7 @@ def send_high_crowd_alert_once(
 # REVERSE GEOCODING
 # Converts latitude/longitude into readable location text
 # Example:
-# "VSM College of Engineering, Ramachandrapuram, Andhra Pradesh"
+# "Ramachandrapuram, East Godavari, Andhra Pradesh, 533255, India"
 # ============================================================
 
 def reverse_geocode(latitude, longitude):
@@ -460,12 +460,13 @@ def reverse_geocode(latitude, longitude):
         return None
 
     try:
+        # IMPORTANT: This must be a normal URL, NOT a Markdown link
         url = "https://nominatim.openstreetmap.org/reverse"
 
         params = {
             "lat": latitude,
             "lon": longitude,
-            "format": "json",
+            "format": "jsonv2",
             "zoom": 18,
             "addressdetails": 1,
             "accept-language": "en",
@@ -483,42 +484,66 @@ def reverse_geocode(latitude, longitude):
         )
 
         if response.status_code != 200:
+            print("Reverse geocoding HTTP error:", response.status_code)
             return None
 
         data = response.json()
 
-        # Get readable location name
-        display_name = data.get("display_name")
-
-        if display_name:
-            return display_name
-
-        # Fallback
         address = data.get("address", {})
+
+        # ----------------------------------------------------
+        # Get individual address components
+        # ----------------------------------------------------
+
+        place_name = (
+            address.get("amenity")
+            or address.get("building")
+            or address.get("shop")
+            or address.get("road")
+            or address.get("neighbourhood")
+        )
+
+        village = (
+            address.get("village")
+            or address.get("town")
+            or address.get("city")
+            or address.get("municipality")
+        )
+
+        district = (
+            address.get("county")
+            or address.get("district")
+        )
+
+        state = address.get("state")
+        postcode = address.get("postcode")
+        country = address.get("country")
+
+        # ----------------------------------------------------
+        # Create clean readable location
+        # ----------------------------------------------------
 
         parts = []
 
-        for key in [
-            "amenity",
-            "building",
-            "road",
-            "neighbourhood",
-            "suburb",
-            "village",
-            "town",
-            "city",
-            "district",
-            "state",
-            "postcode",
-            "country",
+        for value in [
+            place_name,
+            village,
+            district,
+            state,
+            postcode,
+            country,
         ]:
-            value = address.get(key)
-
             if value and value not in parts:
                 parts.append(value)
 
         if parts:
             return ", ".join(parts)
+
+        # Final fallback
+        display_name = data.get("display_name")
+
+        if display_name:
+            return display_name
 
     except Exception as e:
         print("Reverse geocoding error:", e)
@@ -1113,11 +1138,11 @@ if isinstance(gps_result, dict):
                 gps_store["location_text"] = (
                     location_text
                 )
-
-            else:
-                gps_store["location_text"] = (
-                    f"Latitude: {lat:.6f}, Longitude: {lon:.6f}"
-                )
+            else
+            gps_store["location_text"] = (
+                "Location name could not be determined. "
+                "Please try GET GPS LOCATION again."
+            )
 
 
 # ============================================================
