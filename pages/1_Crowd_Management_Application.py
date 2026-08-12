@@ -540,63 +540,65 @@ def send_high_crowd_alert_once(
 def reverse_geocode(latitude, longitude):
 
     if latitude is None or longitude is None:
-
         return None
 
     try:
 
-        url = (
-            "https://nominatim.openstreetmap.org/reverse"
-        )
+        url = "https://nominatim.openstreetmap.org/reverse"
 
         params = {
             "lat": latitude,
             "lon": longitude,
-            "format": "jsonv2",
+            "format": "json",
             "zoom": 18,
             "addressdetails": 1,
+            "accept-language": "en",
         }
 
         headers = {
-            "User-Agent":
-            "AI-Crowd-Management-System/1.0"
+            "User-Agent": (
+                "AI-Crowd-Management-System/1.0 "
+                "(Streamlit application)"
+            )
         }
 
         response = requests.get(
             url,
             params=params,
             headers=headers,
-            timeout=10,
+            timeout=15,
         )
 
-        if response.status_code != 200:
+        print("Reverse geocoding status:", response.status_code)
+        print("Reverse geocoding response:", response.text[:500])
 
+        if response.status_code != 200:
             return None
 
         data = response.json()
 
-        display_name = data.get(
-            "display_name"
-        )
+        # First preference: complete readable address
+        display_name = data.get("display_name")
 
         if display_name:
-
             return display_name
 
-        address = data.get(
-            "address",
-            {}
-        )
+        # Fallback: construct address manually
+        address = data.get("address", {})
 
         parts = []
 
         for key in [
             "amenity",
             "building",
+            "house_number",
             "road",
+            "neighbourhood",
             "suburb",
+            "village",
             "town",
             "city",
+            "district",
             "state",
             "postcode",
             "country",
@@ -605,22 +607,20 @@ def reverse_geocode(latitude, longitude):
             value = address.get(key)
 
             if value and value not in parts:
-
                 parts.append(value)
 
         if parts:
-
             return ", ".join(parts)
 
     except Exception as e:
 
         print(
             "Reverse geocoding error:",
-            e
+            type(e).__name__,
+            str(e),
         )
 
     return None
-
 
 # ============================================================
 # CAMERA FRAME CALLBACK
@@ -1450,22 +1450,17 @@ if isinstance(gps_result, dict):
                 gps_store["accuracy"] = float(
                     accuracy
                 )
-
-            location_text = reverse_geocode(
-                lat,
-                lon,
-            )
-
-            if location_text:
-
-                gps_store["location_text"] = (
-                    location_text
-                )
-
-            else:
+                location_text = reverse_geocode(lat, lon)
+                if location_text:
+                    gps_store["location_text"] = location_text
+                else:
+                    gps_store["location_text"] = (
+                        f"Latitude: {lat:.6f}, Longitude: {lon:.6f}"
+                    )
+                else:
 
                 gps_store["location_text"] = (
-                    "Location name could not be determined"
+                    "GPS coordinates available, but location name could not be determined"
                 )
 
 
