@@ -23,7 +23,7 @@ if os.path.exists(logo_path):
     with col2:
         st.image(
             logo_path,
-            width=180
+            width=250
         )
 else:
     st.warning("Logo image not found.")
