@@ -93,7 +93,7 @@ st.markdown("---")
 # PROJECT TITLE
 # =========================================================
 
-st.header("🚨 AI Crowd Management System")
+st.header("🚨 CROWDGURD AI-Intelligent Crowd Management System")
 
 st.write(
     """
