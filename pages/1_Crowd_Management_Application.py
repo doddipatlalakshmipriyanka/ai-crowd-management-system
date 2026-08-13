@@ -151,7 +151,7 @@ record_file = RECORD_DIR / f"{record_id}_crowd_video.flv"
 # TITLE
 # ============================================================
 
-st.title("👥 AI Crowd Management System")
+st.title("👥 CrowdGuard AI-Intelligent Crowd Management System")
 
 st.write(
     "AI-powered crowd detection, people counting, risk analysis, "
