@@ -5,7 +5,7 @@ import streamlit as st
 # =========================================================
 
 st.set_page_config(
-    page_title="AI Crowd Management System",
+    page_title="CROWDGURD AI-Intelligent Crowd Management System",
     page_icon="👥",
     layout="wide"
 )
