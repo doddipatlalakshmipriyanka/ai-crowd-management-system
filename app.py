@@ -10,51 +10,98 @@ st.set_page_config(
     layout="wide"
 )
 # =========================================================
-# BACKGROUND IMAGE
+# BACKGROUND + WHITE CONTENT
 # =========================================================
 
-import os
+st.markdown(
+    """
+    <style>
 
-background_path = os.path.join(
-    "image",
-    "background.jpeg"
+    /* Full application background */
+    .stApp {
+        background-image:
+            linear-gradient(
+                rgba(0, 0, 20, 0.55),
+                rgba(0, 0, 20, 0.55)
+            ),
+            url("https://ai-crowd-management-system-hfciltzzvgjywdtacvjbah.streamlit.app/");
+
+        background-size: cover;
+        background-position: center;
+        background-attachment: fixed;
+    }
+
+    /* Main content text */
+    .main .block-container {
+        color: white !important;
+    }
+
+    /* All normal text */
+    .main .block-container p,
+    .main .block-container li,
+    .main .block-container span,
+    .main .block-container label {
+        color: white !important;
+    }
+
+    /* Headings */
+    .main .block-container h1,
+    .main .block-container h2,
+    .main .block-container h3,
+    .main .block-container h4,
+    .main .block-container h5,
+    .main .block-container h6 {
+        color: white !important;
+    }
+
+    /* Sidebar */
+    section[data-testid="stSidebar"] {
+        background-color: rgba(3, 12, 35, 0.95);
+    }
+
+    section[data-testid="stSidebar"] * {
+        color: white !important;
+    }
+
+    /* Information boxes */
+    div[data-testid="stAlert"] {
+        color: white !important;
+    }
+
+    div[data-testid="stAlert"] p {
+        color: white !important;
+    }
+
+    /* Buttons */
+    .stButton > button {
+        color: white !important;
+        background-color: #0878d1 !important;
+        border: 1px solid #4db8ff !important;
+        border-radius: 10px;
+        font-weight: bold;
+    }
+
+    .stButton > button:hover {
+        background-color: #005fa8 !important;
+        border-color: white !important;
+    }
+
+    /* Metrics */
+    div[data-testid="stMetric"] {
+        background-color: rgba(0, 20, 50, 0.70);
+        padding: 15px;
+        border-radius: 12px;
+    }
+
+    div[data-testid="stMetric"] label,
+    div[data-testid="stMetric"] div {
+        color: white !important;
+    }
+
+    </style>
+    """,
+    unsafe_allow_html=True
 )
-
-if os.path.exists(background_path):
-
-    with open(background_path, "rb") as f:
-        background_data = f.read()
-
-    import base64
-
-    background_base64 = base64.b64encode(
-        background_data
-    ).decode()
-
-    st.markdown(
-        f"""
-        <style>
-
-        .stApp {{
-            background-image:
-                linear-gradient(
-                    rgba(5, 15, 35, 0.82),
-                    rgba(5, 15, 35, 0.82)
-                ),
-                url("data:image/jpeg;base64,{background_base64}");
-
-            background-size: cover;
-            background-position: center;
-            background-attachment: fixed;
-        }}
-
-        </style>
-        """,
-        unsafe_allow_html=True
-    )
-
-else:
-    st.warning("Background image not found.")
 # =========================================================
 # LOGO
 # =========================================================
