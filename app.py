@@ -18,12 +18,12 @@ import os
 logo_path = os.path.join("image", "logo.jpeg")
 
 if os.path.exists(logo_path):
-    col1, col2, col3 = st.columns([1, 2, 1])
+    col1, col2, col3 = st.columns([2, 1, 2])
 
     with col2:
         st.image(
             logo_path,
-            width=250
+            width=400
         )
 else:
     st.warning("Logo image not found.")
