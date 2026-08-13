@@ -9,7 +9,24 @@ st.set_page_config(
     page_icon="👥",
     layout="wide"
 )
+# =========================================================
+# LOGO
+# =========================================================
 
+import os
+
+logo_path = os.path.join("image", "logo.png")
+
+if os.path.exists(logo_path):
+    col1, col2, col3 = st.columns([1, 2, 1])
+
+    with col2:
+        st.image(
+            logo_path,
+            width=180
+        )
+else:
+    st.warning("Logo image not found.")
 # =========================================================
 # SIDEBAR
 # =========================================================
