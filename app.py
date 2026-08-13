@@ -18,7 +18,7 @@ import os
 logo_path = os.path.join("image", "logo.jpeg")
 
 if os.path.exists(logo_path):
-    col1, col2, col3 = st.columns([2, 1, 2])
+    col1, col2, col3 = st.columns([3, 2, 3])
 
     with col2:
         st.image(
