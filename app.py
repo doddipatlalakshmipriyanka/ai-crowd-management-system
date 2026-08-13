@@ -17,7 +17,7 @@ import os
 
 background_path = os.path.join(
     "image",
-    "background.jpg"
+    "background.jpeg"
 )
 
 if os.path.exists(background_path):
