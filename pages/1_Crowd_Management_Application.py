@@ -27,7 +27,7 @@ from streamlit_js_eval import get_geolocation
 # ============================================================
 
 st.set_page_config(
-    page_title="AI Crowd Management System",
+    page_title="CrowdGuard AI-Intelligent Crowd Management System",
     page_icon="👥",
     layout="wide",
 )
