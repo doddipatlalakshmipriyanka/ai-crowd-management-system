@@ -10,6 +10,52 @@ st.set_page_config(
     layout="wide"
 )
 # =========================================================
+# BACKGROUND IMAGE
+# =========================================================
+
+import os
+
+background_path = os.path.join(
+    "image",
+    "background.jpg"
+)
+
+if os.path.exists(background_path):
+
+    with open(background_path, "rb") as f:
+        background_data = f.read()
+
+    import base64
+
+    background_base64 = base64.b64encode(
+        background_data
+    ).decode()
+
+    st.markdown(
+        f"""
+        <style>
+
+        .stApp {{
+            background-image:
+                linear-gradient(
+                    rgba(5, 15, 35, 0.82),
+                    rgba(5, 15, 35, 0.82)
+                ),
+                url("data:image/jpeg;base64,{background_base64}");
+
+            background-size: cover;
+            background-position: center;
+            background-attachment: fixed;
+        }}
+
+        </style>
+        """,
+        unsafe_allow_html=True
+    )
+
+else:
+    st.warning("Background image not found.")
+# =========================================================
 # LOGO
 # =========================================================
 
@@ -139,7 +185,7 @@ st.write(
 # It does NOT use the deployed Streamlit URL.
 
 if st.button(
-    "🚀 OPEN AI CROWD MANAGEMENT APPLICATION",
+    "🛡️ OPEN CROWDGUARD AI APPLICATION",
     type="primary",
     use_container_width=True
 ):
@@ -159,7 +205,7 @@ st.header("📋 Project Description")
 
 st.write(
     """
-    The AI Crowd Management System uses Artificial Intelligence
+    The CrowdGurd AI is an intelligent Crowd Management System uses Artificial Intelligence
     and Computer Vision to analyze crowd situations.
 
     The system uses the YOLO object detection model to detect
