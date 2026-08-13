@@ -9,99 +9,70 @@ st.set_page_config(
     page_icon="👥",
     layout="wide"
 )
-# =========================================================
-# BACKGROUND + WHITE CONTENT
-# =========================================================
+import base64
 
-st.markdown(
-    """
-    <style>
+def set_background(image_path):
+    with open(image_path, "rb") as image_file:
+        encoded = base64.b64encode(
+            image_file.read()
+        ).decode()
 
-    /* Full application background */
-    .stApp {
-        background-image:
-            linear-gradient(
-                rgba(0, 0, 20, 0.55),
-                rgba(0, 0, 20, 0.55)
-            ),
-            url("https://ai-crowd-management-system-hfciltzzvgjywdtacvjbah.streamlit.app/");
+    st.markdown(
+        f"""
+        <style>
 
-        background-size: cover;
-        background-position: center;
-        background-attachment: fixed;
-    }
+        .stApp {{
+            background-image:
+                linear-gradient(
+                    rgba(0, 0, 20, 0.55),
+                    rgba(0, 0, 20, 0.55)
+                ),
+                url("data:image/jpeg;base64,{encoded}");
 
-    /* Main content text */
-    .main .block-container {
-        color: white !important;
-    }
+            background-size: cover;
+            background-position: center;
+            background-attachment: fixed;
+        }}
 
-    /* All normal text */
-    .main .block-container p,
-    .main .block-container li,
-    .main .block-container span,
-    .main .block-container label {
-        color: white !important;
-    }
+        .main .block-container {{
+            color: white !important;
+        }}
 
-    /* Headings */
-    .main .block-container h1,
-    .main .block-container h2,
-    .main .block-container h3,
-    .main .block-container h4,
-    .main .block-container h5,
-    .main .block-container h6 {
-        color: white !important;
-    }
+        .main .block-container h1,
+        .main .block-container h2,
+        .main .block-container h3,
+        .main .block-container h4,
+        .main .block-container h5,
+        .main .block-container h6,
+        .main .block-container p,
+        .main .block-container li,
+        .main .block-container span {{
+            color: white !important;
+        }}
 
-    /* Sidebar */
-    section[data-testid="stSidebar"] {
-        background-color: rgba(3, 12, 35, 0.95);
-    }
+        section[data-testid="stSidebar"] {{
+            background-color: rgba(3, 12, 35, 0.96);
+        }}
 
-    section[data-testid="stSidebar"] * {
-        color: white !important;
-    }
+        section[data-testid="stSidebar"] * {{
+            color: white !important;
+        }}
 
-    /* Information boxes */
-    div[data-testid="stAlert"] {
-        color: white !important;
-    }
+        .stButton > button {{
+            color: white !important;
+            background-color: #0878d1 !important;
+            border: 1px solid #4db8ff !important;
+            border-radius: 10px;
+            font-weight: bold;
+        }}
 
-    div[data-testid="stAlert"] p {
-        color: white !important;
-    }
+        </style>
+        """,
+        unsafe_allow_html=True
+    )
 
-    /* Buttons */
-    .stButton > button {
-        color: white !important;
-        background-color: #0878d1 !important;
-        border: 1px solid #4db8ff !important;
-        border-radius: 10px;
-        font-weight: bold;
-    }
 
-    .stButton > button:hover {
-        background-color: #005fa8 !important;
-        border-color: white !important;
-    }
-
-    /* Metrics */
-    div[data-testid="stMetric"] {
-        background-color: rgba(0, 20, 50, 0.70);
-        padding: 15px;
-        border-radius: 12px;
-    }
-
-    div[data-testid="stMetric"] label,
-    div[data-testid="stMetric"] div {
-        color: white !important;
-    }
-
-    </style>
-    """,
-    unsafe_allow_html=True
-)
+set_background("image/crowdguard_background.jpg")
 # =========================================================
 # LOGO
 # =========================================================
