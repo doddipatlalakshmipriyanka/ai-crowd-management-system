@@ -71,7 +71,7 @@ with st.sidebar:
 st.markdown(
     """
     <h1 style="text-align:center;">
-        👥 AI Crowd Management System
+        👥 CROWDGURD AI-Intelligent Crowd Management System
     </h1>
     """,
     unsafe_allow_html=True
