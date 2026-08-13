@@ -70,9 +70,7 @@ def set_background(image_path):
         """,
         unsafe_allow_html=True
     )
-
-
-set_background("image/crowdguard_background.jpg")
+    set_background("image/crowdguard_background.jpg")
 # =========================================================
 # LOGO
 # =========================================================
