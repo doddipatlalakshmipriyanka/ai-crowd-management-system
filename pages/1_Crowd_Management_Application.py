@@ -535,69 +535,55 @@ def send_high_crowd_alert_once(
 
 def reverse_geocode(latitude, longitude):
 
-    if latitude is None or longitude is None:
-        return None
-
     try:
-
         url = "https://nominatim.openstreetmap.org/reverse"
 
         params = {
             "lat": latitude,
             "lon": longitude,
-            "format": "json",
+            "format": "jsonv2",
             "zoom": 18,
             "addressdetails": 1,
-            "accept-language": "en",
+            "accept-language": "en"
         }
 
         headers = {
-            "User-Agent": "AI-Crowd-Management-System/1.0"
+            "User-Agent": "CrowdGurdAI/1.0"
         }
 
         response = requests.get(
             url,
             params=params,
             headers=headers,
-            timeout=15,
+            timeout=10
         )
 
-        response.raise_for_status()
+        if response.status_code != 200:
+            return "Location name could not be determined"
 
         data = response.json()
 
+        # First try the complete readable address
+        location = data.get("display_name")
+
+        if location:
+            return location
+
+        # Otherwise construct a readable location
         address = data.get("address", {})
 
-        # Get location parts
-        house = address.get("house_number")
-        road = address.get("road")
-        area = (
-            address.get("suburb")
-            or address.get("neighbourhood")
-            or address.get("village")
-            or address.get("town")
-        )
-
-        city = (
-            address.get("city")
-            or address.get("municipality")
-            or address.get("district")
-        )
-
-        state = address.get("state")
-        country = address.get("country")
-
-        # Build readable text
         parts = []
 
-        for value in [
-            house,
-            road,
-            area,
-            city,
-            state,
-            country,
+        for key in [
+            "amenity",
+            "building",
+            "road",
+            "village",
+            "town",
+            "city",
+            "state"
         ]:
+            value = address.get(key)
 
             if value and value not in parts:
                 parts.append(value)
@@ -605,13 +591,13 @@ def reverse_geocode(latitude, longitude):
         if parts:
             return ", ".join(parts)
 
-        return None
+        return "Location name could not be determined"
 
     except Exception as e:
 
         print("Reverse geocoding error:", e)
 
-        return None
+        return "Location name could not be determined"
 # ============================================================
 # CAMERA FRAME CALLBACK
 # ============================================================
